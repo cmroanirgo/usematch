@@ -17,6 +17,7 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
 
 	- default contexts can also be a reference:
 		+ {{#posts &default_post}}
+		```
 		eg: var o = {
 				posts: [
 					{title:'first post', bg_image:'/images/custom_bg.jpg', ... },
@@ -27,15 +28,18 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
 					upperTitle: function() { return this.title.toUpperCase() } // eg. 'FIRST POST'
 				}
 			}
-
+		```
 - filters on everything:
 	+ {{name #toUppper}}
+		```
 		eg: var o = {
 			name: "John Doe",
 			toUpper: function(value) { return value.toUpperCase(); }; // 'JOHN DOE'
 		}
+		```
 
 	+ {{#posts #xmlEscape}}, or {{>posts #xmlEscape}}
+		```
 		for var o = {
 			posts: [
 				{title:'first post' ... },
@@ -43,9 +47,11 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
 			],
 			xmlEscape: function(text) { return text.replace(/&/g, '&amp;')....; }; // 
 		}
+		```
 
 - sections can be functions too. (They must return either a string, OR an array of objects):
-	{#posts} ... {/posts}
+	+ {#posts} ... {/posts}
+	 	```
 	 	eg: var o = {
 			posts: function(render) {
 				this.db_retrieve_posts...
@@ -55,6 +61,9 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
 					] 
 				}
 	 		}
+	 	```
+
+	 	```
 	 	eg: var o = {
 			posts: function(render) {
 				return render( "some fantastic {{title}}", 
@@ -65,4 +74,6 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
 					 );
 				}
 	 		}
+	 	```
+	 	
 
