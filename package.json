@@ -1,0 +1,28 @@
+{
+  "name": "usematch",
+  "version": "0.0.1",
+  "description": "Mustache on acid = Richer templates",
+  "main": "usematch.js",
+  "scripts": {
+    "test": "mocha test --require test/helpers/chai.js --require test/helpers/loadTestFilesFn.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cmroanirgo/usematch.git"
+  },
+  "keywords": [
+    "mustache",
+    "usematch",
+    "template"
+  ],
+  "author": "cmroanirgo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cmroanirgo/usematch/issues"
+  },
+  "homepage": "https://github.com/cmroanirgo/usematch#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0"
+  }
+}

@@ -1,0 +1,10 @@
+Template test2
+
+{{#posts}}
+<h1>{{postNum}}.{{title}}</h1>
+{{content}}
+<hr/>
+{{else}}
+No Posts!
+{{/posts}}
+
