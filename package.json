@@ -1,6 +1,6 @@
 {
   "name": "usematch",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Mustache on acid = Richer templates",
   "main": "usematch.js",
   "scripts": {
