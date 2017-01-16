@@ -7,22 +7,21 @@
 
 
 ## Features
-This is a code/template compatible replacement for mustache. The only difference will be in whitespaces, but passes mustaches' own tests otherwise.
-
+This is a code/template compatible replacement for mustache. T
 
 It has a lot more flexibility over the original engine:
 
-- {{else}} block for #ifish blocks and ^not-ifish blocks:
-	+ {{#value} ... {{else} ... {{/value} 
-  	+ {{^value}  ... {{else}} ... {{/value}}
+- `An {{else}}` block for #ifish blocks and ^not-ifish blocks:
+	+ `{{#value} ... {{else} ... {{/value}`
+  	+ `{{^value}  ... {{else}} ... {{/value}}`
 
 - default context values for everything, defined in the template:
-	+ {{name {name:'John Doe'} }}
-	+ {{#posts {bg_image:'/images/bg.jpg'} }}
-	+ {{>post_page {author: 'John Doe'} }}
+	+ `{{name {name:'John Doe'} }}`
+	+ `{{#posts {bg_image:'/images/bg.jpg'} }}`
+	+ `{{>post_page {author: 'John Doe'} }}`
 
 	- default contexts can also be a reference:
-		+ {{#posts &default_post}}{{upperTitle}}{{/posts}}
+		+ `{{#posts &default_post}}{{upperTitle}}{{/posts}}`
 		```
 		eg: var o = {
 				posts: [
@@ -36,7 +35,7 @@ It has a lot more flexibility over the original engine:
 			}
 		```
 - filters on everything:
-	+ {{name #toUppper}}
+	+ `{{name #toUppper}}`
 		```
 		eg: var o = {
 			name: "John Doe",
@@ -44,7 +43,7 @@ It has a lot more flexibility over the original engine:
 		}
 		```
 
-	+ {{#posts #xmlEscape}}, or {{>posts #xmlEscape}}
+	+ `{{#posts #xmlEscape}}`, or `{{>posts #xmlEscape}}`
 		```
 		for var o = {
 			posts: [
@@ -56,11 +55,10 @@ It has a lot more flexibility over the original engine:
 		```
 
 - sections can be functions too (like mustache). (They must return either a string, OR an array of objects):
-	+ {#posts} ... {/posts}
+	+ `{#posts} ... {/posts}`
 	 	```
 	 	eg: var o = {
-			posts: function(render) {
-				this.db_retrieve_posts...
+			posts: function() { 
 				return [
 						{title:'first post' ... },
 						{title:'second post' ... }
@@ -68,18 +66,18 @@ It has a lot more flexibility over the original engine:
 				}
 	 		}
 	 	```
-
+	 	Or, return a 'renderable' item:
 	 	```
 	 	eg: var o = {
-			posts: function(render) {
+			posts: function() { return function(text, render, elseText) {
 				return render( "some fantastic {{title}}", 
 						[			
 							{title:'first post' ... },
 							{title:'second post' ... }
 						] 					
 					 );
-				}
-	 		}
+				}}
+			}
 	 	```
 
 ## Usage
@@ -208,3 +206,6 @@ Or:
 text = text.replace(/\s*\n\s*/g, '\n'); 
 ```
 
+## Why?
+
+When writing a new [CMS package](https://github.com/ergo-cms/), I was dismayed how mustache failed to suit my needs, despite the impressive following it has. Mostly, was the lack of the ability to set 'defaults', which was a complete deal breaker for me. Although not a fan of mustache's double handlebar syntax, I understood however that others were very happy with the formatting. Hence, this drop in mustache compatible alternative was created. Feel free to fork, or add comments, or report bugs.

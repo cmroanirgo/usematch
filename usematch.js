@@ -621,9 +621,20 @@ function _renderSection(token, context, options, isSection) {
 	var currentContext = _getContext(context, token);
 	var section = _findValue(token.name, currentContext);
 	if (isFunction(section)) {
-		var subRenderFn = function(text) {
+		var subRenderFn = function(text, newContext) {
+			var c = extend({}, currentContext)
+
+			if (!!newContext) {
+				if (isSimpleObject(newContext)) {
+					c['.'] = newContext;
+					c[token.name] = newContext;
+				}
+				else
+					extend(c, newContext);
+			}
+
 			var tokens = _parse(text, options)
-			return _render(tokens, currentContext, options);
+			return _render(tokens, c, options);
 		}
 		if (isSection) {
 			return section.call(currentContext, token.data.template, subRenderFn, token.data.elseTemplate)
