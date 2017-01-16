@@ -22,7 +22,7 @@ It has a lot more flexibility over the original engine:
 
 	- default contexts can also be a reference:
 		+ `{{#posts &default_post}}{{upperTitle}}{{/posts}}`
-		```
+		```js
 		eg: var o = {
 				posts: [
 					{title:'first post', bg_image:'/images/custom_bg.jpg', ... },
@@ -36,7 +36,7 @@ It has a lot more flexibility over the original engine:
 		```
 - filters on everything:
 	+ `{{name #toUppper}}`
-		```
+		```js
 		eg: var o = {
 			name: "John Doe",
 			toUpper: function(value) { return value.toUpperCase(); }; // 'JOHN DOE'
@@ -44,7 +44,7 @@ It has a lot more flexibility over the original engine:
 		```
 
 	+ `{{#posts #xmlEscape}}`, or `{{>posts #xmlEscape}}`
-		```
+		```js
 		for var o = {
 			posts: [
 				{title:'first post' ... },
@@ -56,7 +56,8 @@ It has a lot more flexibility over the original engine:
 
 - sections can be functions too (like mustache). (They must return either a string, OR an array of objects):
 	+ `{#posts} ... {/posts}`
-	 	```
+
+	 	```js
 	 	eg: var o = {
 			posts: function() { 
 				return [
@@ -66,8 +67,9 @@ It has a lot more flexibility over the original engine:
 				}
 	 		}
 	 	```
+	 	
 	 	Or, return a 'renderable' item:
-	 	```
+	 	```js
 	 	eg: var o = {
 			posts: function() { return function(text, render, elseText) {
 				return render( "some fantastic {{title}}", 
@@ -82,7 +84,7 @@ It has a lot more flexibility over the original engine:
 
 ## Usage
 
-```
+```js
 const usematch = require('usematch');
 
 console.log(usematch.render('{{title}}', {title:"Awesome!"})); 
@@ -92,7 +94,7 @@ console.log(usematch.render('{{title}}', {title:"Awesome!"}));
 
 For a complete 'drop-in' replacement api of mustache, use:
 
-```
+```js
 var Mustache = require('usematch').mustache;
 
 ... (your existing code works here without change) ...
@@ -186,7 +188,7 @@ Usematch doesn't try and cache things for you, by default. This can be a huge me
 
 You must save the return value of the parse function, in order to save execution time. You could even spool the tokens to disk for later use, if you like.
 
-```
+```js
 var tokens = usematch.parse('{{title}}');
 var text = usematch.render(tokens, { data: ...})
 ```
@@ -194,14 +196,14 @@ var text = usematch.render(tokens, { data: ...})
 ### Whitespace
 Mustache does some pretty crazy things in order to reduce the generated whitespace. This can be problematic if not rendering HTML, so usematch doesn't try to do this. If you want to clean up the returned text, then something like this should suffice:
 
-```
+```js
 // eat all whitespace that appear more than once in a sequence
 text = text.replace(/\s{2,}/g, ' '); 
 ```
 
 Or:
 
-```
+```js
 // remove all whitespace around newlines. (this also reduces \n\n)
 text = text.replace(/\s*\n\s*/g, '\n'); 
 ```
