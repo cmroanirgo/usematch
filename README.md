@@ -4,13 +4,16 @@
 
 
 ## Intro
-This is a code/template compatible replacement for mustache. But it has a lot more flexibility over the original engine:
+This is a code/template compatible replacement for mustache. The only difference will be in whitespaces & passes mustaches' own tests otherwise.
+
+
+It has a lot more flexibility over the original engine, however:
 
 - {{else}} block for #ifish blocks and ^not-ifish blocks:
 	+ {{#value} ... {{else} ... {{/value} 
   	+ {{^value}  ... {{else}} ... {{/value}}
 
-- default context values for everything:
+- default context values for everything, defined in the template:
 	+ {{name {name:'John Doe'} }}
 	+ {{#posts {bg_image:'/images/bg.jpg'} }}
 	+ {{>post_page {author: 'John Doe'} }}
@@ -49,7 +52,7 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
 		}
 		```
 
-- sections can be functions too. (They must return either a string, OR an array of objects):
+- sections can be functions too (like mustache). (They must return either a string, OR an array of objects):
 	+ {#posts} ... {/posts}
 	 	```
 	 	eg: var o = {
