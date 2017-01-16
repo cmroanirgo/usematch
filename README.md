@@ -87,7 +87,8 @@ It has a lot more flexibility over the original engine:
 ```
 const usematch = require('usematch');
 
-console.log(usematch.render('{{title}}', {title:"Awesome!"}))); // prints 'Awesome!'
+console.log(usematch.render('{{title}}', {title:"Awesome!"})); 
+// prints 'Awesome!'
 ```
 
 
@@ -121,18 +122,18 @@ var output = usematch.render("{{title}} spends {{calc}}", context);
 Following is an [rtype](https://git.io/rtype) signature of the most commonly used functions.
 
 ```js
-Mustache.render(
+usematch.render(
   template  : String|Tokens,
   context   : Object,
   options?  : Options
 ) => String
 
-Mustache.parse(
-  template              : String,
-  tags = ['{{', '}}']   : Tags,
+usematch.parse(
+  template   : String,
+  options?   : Options
 ) => Tokens
 
-interface Tokens [ Object ]
+interface Tokens [ Object ];
 
 interface Options { 		// All elements are optional
 	tag_start : "{{",
@@ -141,7 +142,6 @@ interface Options { 		// All elements are optional
 	defaults  : Object 		// used in conjuction with the 'context' parameter of render()
 }
 ```
-
 
 
 
@@ -167,7 +167,7 @@ Following is an [rtype](https://git.io/rtype) signature of the most commonly use
 ```js
 Mustache.render(
   template  : String,
-  view      : Object,
+  context   : Object,
   partials? : Object,
 ) => String
 
@@ -179,7 +179,7 @@ Mustache.parse(
 interface Tags [String, String]
 ```
 
-See also the [original documentumentation](https://github.com/janl/mustache.js).
+See the [original mustache documentumentation](https://github.com/janl/mustache.js).
 
 ## Differences
 
@@ -197,12 +197,14 @@ var text = usematch.render(tokens, { data: ...})
 Mustache does some pretty crazy things in order to reduce the generated whitespace. This can be problematic if not rendering HTML, so usematch doesn't try to do this. If you want to clean up the returned text, then something like this should suffice:
 
 ```
-text = text.replace(/\s{2,}/g, ' '); // eat all whitespace that appear more than once in a sequence
+// eat all whitespace that appear more than once in a sequence
+text = text.replace(/\s{2,}/g, ' '); 
 ```
 
 Or:
 
 ```
-text = text.replace(/\s*\n\s*/g, '\n'); // remove all whitespace from and around newlines. (this also reduces \n\n)
+// remove all whitespace around newlines. (this also reduces \n\n)
+text = text.replace(/\s*\n\s*/g, '\n'); 
 ```
 
