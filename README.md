@@ -2,12 +2,15 @@
 
 **An anagram of Mustache**
 
+[![npm Package](https://img.shields.io/npm/v/usematch.svg)](https://www.npmjs.org/package/usematch)
+[![build status](https://secure.travis-ci.org/cmroanirgo/usematch.svg)](http://travis-ci.org/cmroanirgo/usematch)
 
-## Intro
-This is a code/template compatible replacement for mustache. The only difference will be in whitespaces & passes mustaches' own tests otherwise.
+
+## Features
+This is a code/template compatible replacement for mustache. The only difference will be in whitespaces, but passes mustaches' own tests otherwise.
 
 
-It has a lot more flexibility over the original engine, however:
+It has a lot more flexibility over the original engine:
 
 - {{else}} block for #ifish blocks and ^not-ifish blocks:
 	+ {{#value} ... {{else} ... {{/value} 
@@ -78,4 +81,46 @@ It has a lot more flexibility over the original engine, however:
 				}
 	 		}
 	 	```
+
+## Usage
+
+```
+const usematch = require('usematch');
+
+console.log(usematch.render('{{title}}', {title:"Awesome!"}))); // prints 'Awesome!'
+```
+
+
+For a complete 'drop-in' replacement api of mustache, use:
+
+```
+var Mustache = require('usematch').mustache;
+
+... (your existing code works here without change) ...
+```
+
+## Differences
+
+### Caching
+Usematch doesn't try and cache things for you, by default. This can be a huge memory saving in some instances. However, when you use `require('usematch').mustache`, then a basic cache will be activated that works similarly to mustache's original.
+
+You must save the return value of the parse function, in order to save execution time. You could even spool the tokens to disk for later use, if you like.
+
+```
+var tokens = usematch.parse('{{title}}');
+var text = usematch.render(tokens, { data: ...})
+```
+
+### Whitespace
+Mustache does some pretty crazy things in order to reduce the generated whitespace. This can be problematic if not rendering HTML, so usematch doesn't try to do this. If you want to clean up the returned text, then something like this should suffice:
+
+```
+text = text.replace(/\s{2,}/g, ' '); // eat all whitespace that appear more than once in a sequence
+```
+
+Or:
+
+```
+text = text.replace(/\s*\n\s*/g, '\n'); // remove all whitespace from and around newlines. (this also reduces \n\n)
+```
 
