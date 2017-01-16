@@ -99,6 +99,88 @@ var Mustache = require('usematch').mustache;
 ... (your existing code works here without change) ...
 ```
 
+## API
+
+There are actually two API's provided by this package. Usematch's own and a code compatible Mustache one. Use the latter when porting an existing project. It is recommended to use the Usematch API if you want to be able have tighter control over the system (as there are a lot more options you can tweak).
+
+### Usematch API
+
+```js
+var usematch = require("usematch");
+
+var context = {
+  title: "Joe",
+  calc: function () {
+    return 2 + 4;
+  }
+};
+
+var output = usematch.render("{{title}} spends {{calc}}", context);
+```
+
+Following is an [rtype](https://git.io/rtype) signature of the most commonly used functions.
+
+```js
+Mustache.render(
+  template  : String|Tokens,
+  context   : Object,
+  options?  : Options
+) => String
+
+Mustache.parse(
+  template              : String,
+  tags = ['{{', '}}']   : Tags,
+) => Tokens
+
+interface Tokens [ Object ]
+
+interface Options { 		// All elements are optional
+	tag_start : "{{",
+	tag_end   : "}}",
+	partials  : Object 		// used with {{> partial_name }}
+	defaults  : Object 		// used in conjuction with the 'context' parameter of render()
+}
+```
+
+
+
+
+### Mustache Compatible API
+
+Usematch uses mustache's own tests to ensure this compatibility is real and effective, and is checked automatically as part of [travis](https://travis-ci.org/cmroanirgo/usematch).
+
+```js
+var Mustache = require("usematch").mustache;
+
+var context = {
+  title: "Joe",
+  calc: function () {
+    return 2 + 4;
+  }
+};
+
+var output = Mustache.render("{{title}} spends {{calc}}", context);
+```
+
+Following is an [rtype](https://git.io/rtype) signature of the most commonly used functions.
+
+```js
+Mustache.render(
+  template  : String,
+  view      : Object,
+  partials? : Object,
+) => String
+
+Mustache.parse(
+  template              : String,
+  tags = ['{{', '}}']   : Tags,
+) => String
+
+interface Tags [String, String]
+```
+
+See also the [original documentumentation](https://github.com/janl/mustache.js).
+
 ## Differences
 
 ### Caching

@@ -723,12 +723,15 @@ function parse(template, options) {
 
 function render(template_or_tokens, context, options) {
 	options = extend({tag_start:"{{",tag_end:"}}"}, options||{});
+
 	if (options.log === true) 
 		l = console.log; 
 	else 
 		l = function() { }
 
 	if (!context || !isObject(context)) throw new Error("Invalid params. Context not specified");
+	if (!!options.defaults)
+		context = extend({}, options.defaults, context);
 
 	if (isString(template_or_tokens))
 		template_or_tokens = _parse(template_or_tokens, options);
