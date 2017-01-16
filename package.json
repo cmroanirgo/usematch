@@ -1,7 +1,7 @@
 {
   "name": "usematch",
   "version": "1.0.3",
-  "description": "Mustache on acid = Richer templates",
+  "description": "An anagram of Mustache. Mustache on acid = Richer templates",
   "main": "usematch.js",
   "scripts": {
     "test": "mocha test --require test/helpers/chai.js"
