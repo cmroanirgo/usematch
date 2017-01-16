@@ -5,8 +5,14 @@ var path = require('path');
 
 var _files = path.join(__dirname, '_mustache_files');
 
+//
+// These tests are regarded as 'ignorable'
+var ignoreTests = [
+	'malicious_template.js'  // mustache & usematch handle Bad Food in the template differently. usematch complains, while mustache tries to comply
+];
+
 var testNames = fs.readdirSync(_files).filter(function (file) {
-    return (/\.js$/).test(file);
+    return (/\.js$/).test(file) && ignoreTests.indexOf(file)<0;
   }).map(function (file) {
     return path.basename(file).replace(/\.js$/, '');
   });
