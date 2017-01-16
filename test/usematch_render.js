@@ -1,5 +1,4 @@
 var usematch = require('../usematch');
-return;
 var fs = require('fs');
 var path = require('path');
 

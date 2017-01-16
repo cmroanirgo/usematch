@@ -32,11 +32,14 @@ function extend(dest) { // does a 'shallow' copy/merge of values
 			var add = arguments[a];
 			if (add === null || typeof add !== 'object')
 				continue;
-			var keys = Object.keys(add)
+			for (var key in add) {
+				dest[key] = add[key];
+			}
+			/*var keys = Object.keys(add)
 			var i = keys.length
 			while (i--) {
 				dest[keys[i]] = add[keys[i]]
-			}
+			}*/
 		}
 
 		return dest
@@ -569,7 +572,7 @@ function isSimpleObject(o) {
 function _renderSectionTokens(name, tokens, section, context, options) {
 	if (!isArray(tokens)) throw new Error("expected a valid tokens array")
 	l("\n\n\n\nrenderSectionTokens '"+name+"' begins")
-	if (!isString(section) && isArray(section) && section.length>0) {
+	if (isArray(section) && section.length>0) {
 		var strings = [];
 		for (var s=0; s<section.length; s++) {
 			var c = extend({}, context);
@@ -596,6 +599,7 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 	} else if (isObject(section)) {
 		// the section is it's own context
 		var c = extend({}, context, section);
+		logObj("\nContext for object section "+name+": \n", c);l("\n\n")
 		return _render(tokens, c, options)
 	} else  {
 		// a mustachian weirdness.
@@ -696,6 +700,11 @@ function _render(tokens, context, options) {
 				break;
 
 			case TOKEN.PARTIAL:
+				currentContext = _getContext(context, token);
+				value = _findValue(token.name, options.partials)
+				if (value===null || value===undefined)
+					value=''
+				strings.push(_render(_parse(value, options), currentContext, options));
 				break;
 		}
 	}

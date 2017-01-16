@@ -67,7 +67,7 @@ var tests = testNames.map(getTest);
   }
 Mustache.escape = escapeHtml;
 
-var test_to_watch = 41;
+var test_to_watch = -1;
 var reWHITE = /\s*\n\s*|^\s*|\s*$/g;
 
 describe('Mustache.render', function () {
