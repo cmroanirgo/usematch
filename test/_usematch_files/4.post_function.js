@@ -1,4 +1,4 @@
-loadAndRunTest(__filename, {
+({
 	title: "Test 4",
 	posts: function(render) {
 		console.log("\tRendering posts as a result of a function!")
@@ -14,4 +14,4 @@ loadAndRunTest(__filename, {
 						this)
 					)+1; }
 
-});
+})

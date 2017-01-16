@@ -20,6 +20,7 @@ function isArray(obj) { return _objIsType(obj, 'Array');  }
 function isRegExp(obj) { return _objIsType(obj, 'RegExp');  }
 function isFunction(obj) { return typeof obj === 'function' };
 function isString(str) { return typeof str === 'string'; }
+function isNumeric(x) { return typeof x === 'number'; }
 function isEmptyString(str) { return !str || str.length==0; }
 function isDefined(x) { return x !== undefined; }
 function isBool(x) { return typeof x == 'boolean'; }
@@ -191,14 +192,15 @@ var __MATCHES = {};
 	//     This isn't"    "'name'"		(but "name" is ok)
 __MATCHES.NAME=               /[^\s\'\"\(\)\{\}\uD800-\uDFFF]+/
 __MATCHES.PARAMETERS=         /(?:\s+(.+?))??\s*/ // this is 'to the right' of a tag's name
-__MATCHES.SECTION_START= _reM(/\s*\#(NAME)PARAMETERS/)
-__MATCHES.SECTION_END=   _reM(/\s*\/(NAME)PARAMETERS/)
-__MATCHES.SECTION_NOT=   _reM(/\s*\^(NAME)PARAMETERS/)
-__MATCHES.PARTIAL=       _reM(/\s*\>(NAME)PARAMETERS/)
-__MATCHES.COMMENT=       _reM(/\s*\!.*?/)
-__MATCHES.VALUE=         _reM(/\s*(NAME)PARAMETERS/)
-__MATCHES.RAW=           _reM(/\s*\&(NAME)PARAMETERS/)
-__MATCHES.RAW_BRACED=    _reM(/\s*\{(NAME)\}\s*/),
+__MATCHES.SECTION_START= _reM(/ *\# *(NAME)PARAMETERS/)
+__MATCHES.SECTION_END=   _reM(/ *\/ *(NAME)PARAMETERS/)
+__MATCHES.SECTION_NOT=   _reM(/ *\^ *(NAME)PARAMETERS/)
+__MATCHES.SECTION_ELSE=       / *(?:ELSE|else)\s*/
+__MATCHES.PARTIAL=       _reM(/ *\> *(NAME)PARAMETERS/)
+__MATCHES.COMMENT=       _reM(/ *\![\s\S]*?/)
+__MATCHES.VALUE=         _reM(/ *(NAME)PARAMETERS/)
+__MATCHES.RAW=           _reM(/ *\& *(NAME)PARAMETERS/)
+__MATCHES.RAW_BRACED=    _reM(/ *\{ *(NAME) *\} */),
 __MATCHES.TAG_CHANGE=         /\=([\S]{1,10}) +([\S]{1,10})\=/  // note the SPACE literal ' '+, rather than \s+
 
 var PARAMETER_MATCHES = { 
@@ -218,6 +220,7 @@ function _reM(re) { return _reFriendlyA(re, ['NAME', 'PARAMETERS'], [__MATCHES.N
 */
 function Scanner(text) {
 	this.text = text;
+	this.prevPos = -1;
 	this.pos = 0;
 }
 
@@ -241,6 +244,7 @@ Scanner.prototype.match = function match (re, fn) {
 		//logObj("matched: ", this.last_match)
 		var str = this.last_match[0];
 		this.text = this.text.substring(str.length);
+		this.prevPos = this.pos;
 		this.pos += str.length; 
 		if (fn)
 			fn.apply(null, this.last_match.slice(1));	
@@ -273,6 +277,7 @@ Scanner.prototype.scanUntil = function scanUntil (re, required) {
 	    this.text = this.text.substring(index);
 	}
 
+	this.prevPos = this.pos;
 	this.pos += match.length;
 	//logObj("\nScanner state after scanUntil is now: ", this)
 
@@ -287,25 +292,35 @@ function __Tokens() {
 	this.tokens = [];
 }
 __Tokens.prototype.push = function(type, name, data, parameters) {
-	this.tokens.push({ type: type, name:name, data: data, params: parameters})
+	var tok = { type: type, name:name, data: data, params: parameters};
+	this.tokens.push(tok);
+	return tok;
+};
+__Tokens.prototype.close = function() { // make this class readonly & return just the array
+	var tokens = this.tokens;
+	this.tokens = null
+	return tokens;
 };
 
 
 function _parse(template, options) {
 	if (options.log === true) l = console.log;
 	var scanner = new Scanner(template);
-	var tokens = new __Tokens();
+	var _rootTokens = new __Tokens();
+	var sections = []; // {section:Token, tokens:Tokens} where 'tokens' is a reference to either section.data.tokens OR section.data.elseTokens
+	var tokens = _rootTokens;
 	var current_options = options;
 
 
 	// re make our matches to be surrounded by the current start and end tags (normally {{ and }})
 	function makeMATCHES(options) {
 		var m = {
-			TAG_START:    new RegExp(_reEscape(options.tag_start) + ".*?" + _reEscape(options.tag_end)),
-			ELSE:         new RegExp(_reEscape(options.tag_start) + "\\s*(?:else|ELSE)\\s*" + _reEscape(options.tag_end)),
-			//WHITE_STRIP:  new RegExp("^\\s*("+_reEscape(options.tag_start) + ".*?" + _reEscape(options.tag_end) + ")\\s*$", 'gm'),
+			// special RegExp. It's the one that matches all the other RegExps :)
+			TAG_START:    new RegExp(_reEscape(options.tag_start)),
+			TAG_END:    new RegExp(_reEscape(options.tag_end)),
 		}
 		for (var key in __MATCHES) {
+			// for the other RegExps, turn them into ^{{...}}
 			m[key] = new RegExp("^" + _reEscape(options.tag_start) + _rePrepSubMatch(__MATCHES[key]) + _reEscape(options.tag_end))
 		}
 		return m;
@@ -347,44 +362,15 @@ function _parse(template, options) {
 
 	function beginSection(name, parameters, isSection, options) {
 		var params = readParameters(name, parameters);
-		var data = {tokens:[], template:''}
-		var text = scanner.scanUntil(MATCHES.ELSE, true);
-		var hasElse = scanner.last_scan>=0;
-		if (hasElse){ 
-			// found: {{else}}
-			l("Found {{else}}. This is the first part: '" + text.replace(/\n/g, "\\n") + "'")
-			data.tokens = _parse(text, current_options);
-			data.template = text;
-			scanner.match(MATCHES.ELSE); // eat the 'else'
-		}
-		var re_EndSection = new RegExp(_reEscape(options.tag_start) + "\\s*\/"+_reEscape(name)+"\\s*" + _reEscape(options.tag_end));
-		logObj("Has else: "+hasElse+". looking for: ", re_EndSection)
-		text = scanner.scanUntil(re_EndSection);
-		if (scanner.last_scan>=0) {
-			l("Section text is: " + text.replace(/\n/g, '\\n'))
-			var sub_tokens = _parse(text, current_options);
-			if (hasElse) {
-				data.elseTokens = sub_tokens;
-				data.elseTemplate = text;
-			}
-			else {
-				data.tokens = sub_tokens;
-				data.template = text;
-			}
-			scanner.match(re_EndSection); // eat the 'end'
-		}
-		else
-		{
-			// Hard Error on end not found
-			logObj("End section for '" + name + "' not found!\n", scanner)
-			throw new Error("End section for '" + name + "' not found!");
-		}
-
-		tokens.push(isSection ? TOKEN.SECTION_START : TOKEN.SECTION_NOT, name, data, params)
+		var data = {tokens:new __Tokens(), template:''}
+		var sectionToken = tokens.push(isSection ? TOKEN.SECTION_START : TOKEN.SECTION_NOT, name, data, params);
+		sections.push({section:sectionToken, tokens: sectionToken.data.tokens, pos:scanner.pos} );
+		tokens = sectionToken.data.tokens; // start working in a child token list
 	}
 
 	var MATCHES = makeMATCHES(options);
-	var lastPos = -1;
+	logObj("MATCHES:\n",MATCHES)
+	var loopCheckPos = -1;
 
 	while (!scanner.eos()) {
 		logObj("\nScanner state is: \n", scanner)
@@ -422,6 +408,48 @@ function _parse(template, options) {
 				beginSection(name, parameters, false, current_options)
 			}))
 				;
+			else if (m = scanner.match(MATCHES.SECTION_ELSE, function(name, parameters) {
+				// found: {{^name optional_params}}
+				l("Found section {{else}}")
+				if (!sections.length)
+					throw new Error("Found ELSE but no section!")
+				var currentSectionInf = sections[sections.length-1];
+				var sectionData = currentSectionInf.section.data;
+				sectionData.template = template.substr(currentSectionInf.pos, scanner.prevPos-currentSectionInf.pos)
+				currentSectionInf.pos = scanner.pos; // reset for the else part
+				l("section template is: " + sectionData.template)
+				tokens = currentSectionInf.tokens = sectionData.elseTokens = new __Tokens();
+			}))
+				;
+			else if (m = scanner.match(MATCHES.SECTION_END, function(name) {
+				// found: {{/name}}
+				l("Found end section {{/...}}: '" + name + "'")
+				var currentSectionInf = sections.pop();
+				if (!currentSectionInf)
+					throw new Error("Unexpected end of section: '" +name + "'")
+				if (currentSectionInf.section.name != name)
+					throw new Error("Expected end of section for '"+currentSectionInf.section.name+"', but got '"+name+"'");
+				// 'close' the tokens in the section
+				var sectionData = currentSectionInf.section.data;
+				sectionData.tokens = sectionData.tokens.close();
+				if (!!sectionData.elseTokens) {
+					sectionData.elseTemplate = template.substr(currentSectionInf.pos, scanner.prevPos-currentSectionInf.pos)
+					l("section elseTemplate is: " + sectionData.elseTemplate)
+					sectionData.elseTokens = sectionData.elseTokens.close();
+				}
+				else
+				{
+					sectionData.template = template.substr(currentSectionInf.pos, scanner.prevPos-currentSectionInf.pos)
+					l("section template is: " + sectionData.template)
+				}
+
+				// reset the tokens to the new top of sections, or root
+				if (sections.length>0)
+					tokens = sections[sections.length-1].tokens;
+				else
+					tokens = _rootTokens;
+			}))
+				;
 			else if (m = scanner.match(MATCHES.RAW, function(name, parameters) {
 				// found: {{&value optional_params}}
 				l("Found raw value {{&...}}: '" + name + "'")
@@ -449,18 +477,23 @@ function _parse(template, options) {
 				;
 			// else it must be just text. loop around
 			else {
+				text = scanner.scanUntil(MATCHES.TAG_END);
 				l("No matches for: '" + scanner.text.substr(0,100).replace(/\n/g, '\\n') +"'...")
-				if (lastPos == scanner.pos) {
+				scanner.match(MATCHES.TAG_END); // eat the match
+				if (loopCheckPos == scanner.pos) {
 					logObj("Aborting due to infinite loop detection:\n", scanner)
 					logObj("    Tag Start = ", MATCHES.TAG_START  )
 					throw new Error("Unexpected failure to render. Sorry about that, but an infinite loop was aborted.")
 				}
-				lastPos = scanner.pos;
+				loopCheckPos = scanner.pos;
 			}
 		}
 	}
 
-	return tokens.tokens; // always return the native array.
+	if (sections.length)
+		throw new Error("Failed to find a closing tag(s) for '"+sections.map(function(inf) { return section.name}).join("', '") +"'")
+
+	return tokens.close(); // always return the native array.
 }
 
 // look at the token, & see if we have been given either a context or a contextName & merge that with the given context
@@ -530,27 +563,34 @@ function _findValue(name, _context, _callIfFunction) {
     return value;
 }
 
+function isSimpleObject(o) {
+	return o===null || o===undefined || isArray(o) || ['string', 'number', 'boolean', 'function'].indexOf(typeof o)>=0;
+}
 function _renderSectionTokens(name, tokens, section, context, options) {
 	if (!isArray(tokens)) throw new Error("expected a valid tokens array")
-	if (isArray(section) && section.length>0) {
+	l("\n\n\n\nrenderSectionTokens '"+name+"' begins")
+	if (!isString(section) && isArray(section) && section.length>0) {
 		var strings = [];
 		for (var s=0; s<section.length; s++) {
 			var c = extend({}, context);
-			if (isString(section[s]))
+			if (isSimpleObject(section[s]) )
 				c['.']=section[s]; // this is a special wierd mustachian thing where a section can be just an array of strings. The inner template is {{.}}
 			else
 				extend(c, section[s]);
-			logObj("\n\nContext for "+name+"#"+s+": \n", c);l("\n\n")
+			logObj("\nContext for "+name+"#"+s+": \n", c);l("\n\n")
 			strings.push(_render(tokens, c, options));
 		}
 		return strings.join('')
-	} else if (isString(section)) {
+	} else if (isSimpleObject(section)) {
 		// a mustachian weirdness.
 		// section is used, but it's defined just as value, (but the inner template refers to itself)
 		//.eg {#length} The length is:{{length}}{{/length}}
 		// when { length:'hello'}
+		//.eg {#some.data.item} The value is:{{.}}{{/some.data.item}}
+		// when { some:{data:{item: 3}}}
 		var c = extend({}, context);
 		c[name] = section; // inject the section name as a value
+		c['.'] = section; // ALSO inject the self-referencing value
 		return _render(tokens, c, options);
 
 	} else if (isObject(section)) {
@@ -558,32 +598,38 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 		var c = extend({}, context, section);
 		return _render(tokens, c, options)
 	} else  {
-		// treat this like the mustachian wierdness above for strings....
+		// a mustachian weirdness.
+		// section is used, but it's defined just as value, (& the inner template refers to itself)
+		//.eg {#length} The length is:{{length}}{{/length}}
+		l("WARNING! Unexpected")
+		throw new Error("Unexepected. Cannot render section name '" + name + "' unknown type = "+ (typeof section));
 		var c = extend({}, context);
 		c[name] = section; // inject the section name as a value
 		return _render(tokens, c, options);
 		//throw new Error("Unexepected. Cannot render section name '" + name + "'");
 		//return section.toString();
 	}
+	l("renderSectionTokens '"+name+"'' done\n------------\n")
 
 }
 
 function _renderSection(token, context, options, isSection) {
 	var currentContext = _getContext(context, token);
-	var section = _findValue(token.name, currentContext, false);
+	var section = _findValue(token.name, currentContext);
 	if (isFunction(section)) {
 		var subRenderFn = function(text) {
-			return _render(text, currentContext, options);
+			var tokens = _parse(text, options)
+			return _render(tokens, currentContext, options);
 		}
 		if (isSection) {
-			section = section.call(currentContext, token.data.template, subRenderFn, token.data.elseTemplate)
+			return section.call(currentContext, token.data.template, subRenderFn, token.data.elseTemplate)
 		}
 		else {
 			// calling functions in response to a {^section} is not supportable, really -- it just doesn't make sense. 
 			// We add some _minimal_ support if there's an 'else' block
 			if (!isFalsy(token.data.elseTokens)) {
 				// swap the else and not-else templates
-				section = section.call(currentContext, token.data.elseTemplate, subRenderFn, token.data.template)
+				return 	section.call(currentContext, token.data.elseTemplate, subRenderFn, token.data.template)
 			}
 			else
 				throw new Error("Functions for Inverted sections are not supported without an {{else}} block")
@@ -625,7 +671,7 @@ function _render(tokens, context, options) {
 	var value;
 	for (var t=0; t<tokens.length; t++) {
 		var token = tokens[t];
-		logObj("TOKEN: " + token.type, token)
+		logObj("Rendering Token: \n", token)
 		switch (token.type) {
 			case TOKEN.TEXT: 
 				strings.push(token.data);
@@ -661,7 +707,7 @@ function _render(tokens, context, options) {
 function parse(template, options) {
 	options = extend({tag_start:"{{",tag_end:"}}"}, options||{});
 	var tokens = _parse(template, options);
-	logObj("\n\nParse tokens: \n", tokens)
+	//logObj("\n\nParsed tokens: \n", tokens); l('\n\n\n')
 	return tokens;
 }
 
@@ -681,6 +727,7 @@ function render(template_or_tokens, context, options) {
 	if (!isArray(template_or_tokens))
 		throw new Error("Unexpected invalid params. template needs to be a string, or a previously parsed object")
 
+	l('\n\n\n\n==========\nRendering')
 	return _render(template_or_tokens, context, options);
 
 }

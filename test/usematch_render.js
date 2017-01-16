@@ -1,9 +1,9 @@
-var Mustache = require('../usematch').mustache;
-
+var usematch = require('../usematch');
+return;
 var fs = require('fs');
 var path = require('path');
 
-var _files = path.join(__dirname, '_mustache_files');
+var _files = path.join(__dirname, '_usematch_files');
 
 var testNames = fs.readdirSync(_files).filter(function (file) {
     return (/\.js$/).test(file);
@@ -36,10 +36,10 @@ function getPartial(testName) {
 
 function getTest(testName, index) {
   return {
-  	index: index,
+  	index: index+1,
     name: testName,
     view: getView(testName),
-    template: getContents(testName, 'mustache'),
+    template: getContents(testName, 'usematch'),
     partial: getPartial(testName),
     expect: getContents(testName, 'txt')
   };
@@ -47,47 +47,17 @@ function getTest(testName, index) {
 
 var tests = testNames.map(getTest);
 
+var test_to_watch = -1;
 
-// insert the default escape function that shipped with mustache. usematch's is different.
- var entityMap = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-    '/': '&#x2F;',
-    '`': '&#x60;',
-    '=': '&#x3D;'
-  };
 
-  function escapeHtml (string) {
-    return String(string).replace(/[&<>"'`=\/]/g, function fromEntityMap (s) {
-      return entityMap[s];
-    });
-  }
-Mustache.escape = escapeHtml;
-
-var test_to_watch = 41;
-var reWHITE = /\s*\n\s*|^\s*|\s*$/g;
-
-describe('Mustache.render', function () {
-  beforeEach(function () {
-    Mustache.clearCache();
-  });
-
-  it('requires template to be a string', function () {
-    assert.throws(function () {
-      Mustache.render(['dummy template'], ['foo', 'bar']);
-    }, TypeError, 'Invalid template! Template should be a "string" for mustache.render()');
-  });
-
+describe('Usematch.render', function () {
   for (var i=Math.max(0,test_to_watch); i<tests.length; i++) {
   	function runnit(test) {
 	    var view = eval(test.view);
 		var specialOptions = { log: test.index==test_to_watch };
 
 	    it('knows how to render #' +test.index + ', ' + test.name, function () {
-			var expect = test.expect.replace(reWHITE, '\n');
+			var expect = test.expect;
 	    	if (specialOptions.log){ 
 	    		console.log("\n\nStarting " + test.name+"...")
 				console.log("Expect:\n======\n"+expect.replace(/\n/g, '\\n')+"\n======\n\n")
@@ -95,12 +65,10 @@ describe('Mustache.render', function () {
 
 			var output;
 			if (test.partial) {
-				output = Mustache.render(test.template, view, { partial: test.partial }, specialOptions);
+				output = usematch.render(test.template, view, { partials: {partial: test.partial}, log:specialOptions.log } );
 			} else {
-				output = Mustache.render(test.template, view, undefined, specialOptions);
+				output = usematch.render(test.template, view, specialOptions);
 			}
-
-			output = output.replace(reWHITE, '\n');
 
 			if (specialOptions.log)
 				console.log(test.name + ":\n======\n'"+output.replace(/\n/g, '\\n')+"'\n==vs==\n'"+expect.replace(/\n/g, '\\n')+"'\n======\n\n")

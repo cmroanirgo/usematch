@@ -1,4 +1,4 @@
-
+/*
 
 function loadTestFiles(_filename, context) {
 	const fs = require('fs')
@@ -67,3 +67,4 @@ function loadAndRunTest(_filename, context, logging_level)
 global.loadTestFiles = loadTestFiles;
 global.loadAndRunTest = loadAndRunTest
 global.logObj = function(obj) {	console.log(require('util').inspect(obj, {colors:true})+'\n'); }
+*/

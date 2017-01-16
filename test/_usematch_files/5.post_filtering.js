@@ -1,5 +1,5 @@
-loadAndRunTest(__filename, {
-	title: "Test 6",
+({
+	title: "Test 5",
 	posts: [
 		{ title: "First Post!", content: "Oh yeah!" },
 		{ title: "Second Post!", content: "Oh yeah, but not as much!" },
@@ -13,4 +13,4 @@ loadAndRunTest(__filename, {
 		return "> " + value.toString().split('\n').join('\n> ');
 	}
 
-});
+})

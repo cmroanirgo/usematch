@@ -4,7 +4,7 @@
   "description": "Mustache on acid = Richer templates",
   "main": "usematch.js",
   "scripts": {
-    "test": "mocha test --require test/helpers/chai.js --require test/helpers/loadTestFilesFn.js"
+    "test": "mocha test --require test/helpers/chai.js"
   },
   "repository": {
     "type": "git",
