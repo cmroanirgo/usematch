@@ -11,12 +11,12 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
   	+ {{^value}  ... {{else}} ... {{/value}}
 
 - default context values for everything:
-	+ {{name {'John Doe'}}}
-	+ {{#posts {bg_image:'/images/bg.jpg'}}}
-	+ {{>post_page {author: 'John Doe'}}}
+	+ {{name {name:'John Doe'} }}
+	+ {{#posts {bg_image:'/images/bg.jpg'} }}
+	+ {{>post_page {author: 'John Doe'} }}
 
 	- default contexts can also be a reference:
-		+ {{#posts &default_post}}
+		+ {{#posts &default_post}}{{upperTitle}}{{/posts}}
 		```
 		eg: var o = {
 				posts: [
@@ -75,5 +75,4 @@ This is a code/template compatible replacement for mustache. But it has a lot mo
 				}
 	 		}
 	 	```
-	 	
 

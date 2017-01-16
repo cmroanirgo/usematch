@@ -13,4 +13,4 @@ loadAndRunTest(__filename, {
 		return "> " + value.toString().split('\n').join('\n> ');
 	}
 
-}, 2);
+});

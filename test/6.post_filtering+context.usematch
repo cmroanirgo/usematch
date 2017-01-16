@@ -1,6 +1,6 @@
 Template {{title #indentor}}
 
-{{#posts #indentor {"blocky":"[]" }}}
+{{#posts #indentor {blocky:"[]" } }}
 <h1>{{postNum}}. {{blocky}}{{title}}</h1>
 {{content}}
 <hr/>
