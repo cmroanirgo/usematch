@@ -87,17 +87,6 @@ It has a lot more flexibility over the original engine:
 		}
 		```
 
-	+ `{{#posts #xmlEscape}}`, or `{{>posts #xmlEscape}}`
-		```js
-		for var o = {
-			posts: [
-				{title:'first post' ... },
-				{title:'second post' ... }
-			],
-			xmlEscape: function(text) { return text.replace(/&/g, '&amp;')....; }; // 
-		}
-		```
-
 - sections can be functions too (like mustache). (They must return either a string, OR an array of objects):
 	+ `{#posts} ... {/posts}`
 
