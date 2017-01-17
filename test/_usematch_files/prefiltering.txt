@@ -1,0 +1,67 @@
+
+1. I am post #1
+2. I am post #2
+3. I am post #3
+4. I am post #4
+5. I am post #5
+===
+
+No Posts!
+===
+
+30. I am post #30
+29. I am post #29
+28. I am post #28
+27. I am post #27
+26. I am post #26
+===
+
+1. I am post #1
+2. I am post #2
+3. I am post #3
+4. I am post #4
+5. I am post #5
+===
+Auto-Prefiltered:
+
+I am post #30
+I am post #29
+I am post #28
+I am post #27
+I am post #26
+===
+I call the auto prefilter, without params:
+
+I am post #1
+I am post #2
+I am post #3
+I am post #4
+I am post #5
+I am post #6
+I am post #7
+I am post #8
+I am post #9
+I am post #10
+I am post #11
+I am post #12
+I am post #13
+I am post #14
+I am post #15
+===
+Automagic pre-filter:
+
+I am post #1
+I am post #2
+I am post #3
+I am post #4
+I am post #5
+I am post #6
+I am post #7
+I am post #8
+I am post #9
+I am post #10
+I am post #11
+I am post #12
+I am post #13
+I am post #14
+I am post #15

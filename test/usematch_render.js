@@ -35,7 +35,7 @@ function getPartial(testName) {
 
 function getTest(testName, index) {
   return {
-  	index: index+1,
+  	index: index,
     name: testName,
     view: getView(testName),
     template: getContents(testName, 'usematch'),
@@ -53,9 +53,9 @@ describe('Usematch.render', function () {
   for (var i=Math.max(0,test_to_watch); i<tests.length; i++) {
   	function runnit(test) {
 	    var view = eval(test.view);
-		var specialOptions = { log: test.index==test_to_watch };
+		var specialOptions = { log: i==test_to_watch };
 
-	    it('knows how to render #' +test.index + ', ' + test.name, function () {
+	    it('knows how to render #' +i + ', ' + test.name, function () {
 			var expect = test.expect;
 	    	if (specialOptions.log){ 
 	    		console.log("\n\nStarting " + test.name+"...")

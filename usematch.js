@@ -183,7 +183,7 @@ var TOKEN = { // note that these token values are ARBITARY. They can be numeric,
 	PARTIAL: ">",       // data = { name:name, PARAMETERS}
 
 	// NB: PARAMETERS one or more of:
-	//  { filterName:name, contextName:name, context:{"some":"json"}}
+	//  { prefilters:[{name,param}], filters:[{name,param}], contextName:name, context:{"some":"json"}}
 }
 
 var __MATCHES = {};
@@ -207,9 +207,10 @@ __MATCHES.RAW_BRACED=    _reM(/ *\{ *(NAME) *\} */),
 __MATCHES.TAG_CHANGE=         /\=([\S]{1,10}) +([\S]{1,10})\=/  // note the SPACE literal ' '+, rather than \s+
 
 var PARAMETER_MATCHES = { 
-	FILTER:        _reM(/^\s*\#(NAME)(?:\s*|$)/),
-	CONTEXT_REF:   _reM(/^\s*\&(NAME)(?:\s*|$)/),
-	CONTEXT:            /^\s*(\{.*\})(?:\s+|$)/ 
+	PRE_FILTER:         _reM(/^\s*\@(NAME)?(\{.*?\})?(?:\s+|$)/),
+	POST_FILTER:        _reM(/^\s*\#(NAME)(\{.*?\})?(?:\s+|$)/),
+	CONTEXT_REF:        _reM(/^\s*\&(NAME)(?:\s+|$)/),
+	CONTEXT:                 /^\s*(\{.*\})(?:\s+|$)/ 
 };
 
 function _reM(re) { return _reFriendlyA(re, ['NAME', 'PARAMETERS'], [__MATCHES.NAME, __MATCHES.PARAMETERS], false); }
@@ -335,9 +336,16 @@ function _parse(template, options) {
 		while (!param_scanner.eos())
 		{
 			logObj("\nParam scanner state is: \n", param_scanner)
-			if (param_scanner.match(PARAMETER_MATCHES.FILTER, function(filterName) {
-				if (data.filterName) throw new Error("Only one filter allowed for section '" + name + "'")
-				data.filterName = filterName;
+			if (param_scanner.match(PARAMETER_MATCHES.PRE_FILTER, function(filterName, params) {
+				if (!data.filters) data.prefilters = [];
+				l("Prefilter detected: " +filterName + ' ' +params)
+				data.prefilters.push({name:filterName, params:_toJS(params)})
+			}))
+				;
+			if (param_scanner.match(PARAMETER_MATCHES.POST_FILTER, function(filterName, params) {
+				if (!data.filters) data.filters = [];
+				l("Filter detected: " +filterName + ' ' +params)
+				data.filters.push({name:filterName, params:_toJS(params)})
 			}))
 				;
 			else if (param_scanner.match(PARAMETER_MATCHES.CONTEXT_REF, function(refName) {
@@ -372,7 +380,7 @@ function _parse(template, options) {
 	}
 
 	var MATCHES = makeMATCHES(options);
-	logObj("MATCHES:\n",MATCHES)
+	//logObj("MATCHES:\n",MATCHES)
 	var loopCheckPos = -1;
 
 	while (!scanner.eos()) {
@@ -412,7 +420,7 @@ function _parse(template, options) {
 			}))
 				;
 			else if (m = scanner.match(MATCHES.SECTION_ELSE, function(name, parameters) {
-				// found: {{^name optional_params}}
+				// found: {{else}}
 				l("Found section {{else}}")
 				if (!sections.length)
 					throw new Error("Found ELSE but no section!")
@@ -494,7 +502,7 @@ function _parse(template, options) {
 	}
 
 	if (sections.length)
-		throw new Error("Failed to find a closing tag(s) for '"+sections.map(function(inf) { return section.name}).join("', '") +"'")
+		throw new Error("Failed to find a closing tag(s) for '"+sections.map(function(inf) { return inf.section.name}).join("', '") +"'")
 
 	return tokens.close(); // always return the native array.
 }
@@ -516,15 +524,51 @@ function _getContext(context, token) {
 	return extend(defaultContext, context)
 }
 
+
 function _filterValue(value, context, token) {
-	if (!token.params || !token.params.filterName)
+	if (!token.params || !token.params.filters)
 		return value;
-	var fn = _findValue(token.params.filterName, context, false);
-	if (!fn)
-		throw new Error("Named filter reference '" + token.params.filterName + "' not found");
-	if (!isFunction(fn))
-		throw new Error("Named filter reference '" + token.params.filterName + "' is not a function: " + require('util').inspect(context));
-	return fn.call(context, value);
+	token.params.filters.forEach(function(filterObj) {
+		var fn = _findValue(filterObj.name, context, false);
+		if (!fn)
+			throw new Error("Named filter reference '" + filterObj.name + "' not found");
+		if (!isFunction(fn))
+			throw new Error("Named filter reference '" + filterObj.name + "' is not a function: " + require('util').inspect(context));
+		value = fn.call(context, value, filterObj.params);
+
+	})
+	return value;
+}
+
+function _preFilterValue(value, context, token) {
+	if (token.params && token.params.prefilters && token.params.prefilters.length) {
+		token.params.prefilters.forEach(function(filterObj) {
+			var filterName = filterObj.name || token.name+".prefilter";
+			var fn = _findValue(filterName, context, false);
+			if (!fn) {
+				if (!filterObj.name) // autofiltered?
+					return;// can't find, don't worry
+				else
+					throw new Error("Named pre-filter reference '" + filterObj.name + "' not found");
+			}
+			if (!isFunction(fn))
+				throw new Error("Pre-filter '" + filterName + "' is not a function: " + require('util').inspect(context));
+			value = fn.call(context, value, filterObj.params);
+
+		})
+	}
+	else
+	{
+		// look for section.prefilter...
+		var filterName = token.name+".prefilter";
+		var fn = _findValue(filterName, context, false);
+		if (!fn)
+			return value;// can't find, don't worry
+		if (!isFunction(fn))
+			throw new Error("Auto pre-filter '" + filterName + "' is not a function: " + require('util').inspect(context));
+		value = fn.call(context, value, {});
+	}
+	return value;
 }
 
 function _findValue(name, _context, _callIfFunction) {
@@ -532,7 +576,7 @@ function _findValue(name, _context, _callIfFunction) {
     var value, context = _context, names, index, lookupHit = false;
 
 	while (context && !lookupHit) {
-		if (name.indexOf('.') > 0) {
+		if (name.indexOf('.') > 0 && context[name]===undefined) {
 			names = name.split('.');
 			index = 0;
 
@@ -620,7 +664,7 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 function _renderSection(token, context, options, isSection) {
 	var currentContext = _getContext(context, token);
 	var section = _findValue(token.name, currentContext);
-	if (isFunction(section)) {
+	if (isFunction(section)) { // a 'render' function was returned
 		var subRenderFn = function(text, newContext) {
 			var c = extend({}, currentContext)
 
@@ -651,6 +695,9 @@ function _renderSection(token, context, options, isSection) {
 		}
 	}
 
+	if (section)
+		section = _preFilterValue(section, context, token);
+
 	// yeah. sorry. A mind futz ensues....
 	var okSection = false; // is the main 'token.data.tokens' array good to be used?
 	if (isSection) // non-inverted
@@ -662,7 +709,6 @@ function _renderSection(token, context, options, isSection) {
 
 	if (!section)
 		section = {};
-
 	if (okSection) {
 		// render using the main tokens
 		return _filterValue(_renderSectionTokens(token.name, token.data.tokens, section, currentContext, options), currentContext, token)
@@ -713,13 +759,18 @@ function _render(tokens, context, options) {
 			case TOKEN.PARTIAL:
 				currentContext = _getContext(context, token);
 				value = _findValue(token.name, options.partials)
-				if (value===null || value===undefined)
-					value=''
+				if (value===null || value===undefined) {
+					value='';
+					logObj("Partial '"+token.name+"' not found in: ", options.partials)
+				}
 				strings.push(_render(_parse(value, options), currentContext, options));
 				break;
+			default:
+				throw new Error("Unknown token: " + token.type)
 		}
 	}
 
+	logObj("Rendered: ", strings ); l('\n')
 	return strings.join('');
 }
 

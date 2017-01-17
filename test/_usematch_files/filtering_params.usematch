@@ -1,0 +1,10 @@
+Template {{title #indentor}}
+
+{{#posts #indentor}}
+<h1>{{postNum #indentor{char:'$$$'} }}. {{title}}</h1>
+{{content}}
+<hr/>
+{{else}}
+No Posts!
+{{/posts}}
+

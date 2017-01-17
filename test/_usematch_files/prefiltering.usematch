@@ -1,0 +1,23 @@
+{{#posts @customFilter{len:5} }}
+{{postNum}}. {{title}}{{/posts}}
+===
+{{^posts @customFilter{len:0} }}
+No Posts!{{/posts}}
+===
+{{#posts @customFilter{len:5,sortBy:'order'} }}
+{{postNum}}. {{title}}{{/posts}}
+===
+{{#posts @customFilter{len:5,sortBy:'otherOrder'} }}
+{{postNum}}. {{title}}{{/posts}}
+===
+Auto-Prefiltered:
+{{#posts2 @{len:5,sortBy:'otherOrder',sort:'asc'} }}
+{{title}}{{/posts2}}
+===
+I call the auto prefilter, without params:
+{{#posts2 @ }}
+{{title}}{{/posts2}}
+===
+Automagic pre-filter:
+{{#posts2 }}
+{{title}}{{/posts2}}

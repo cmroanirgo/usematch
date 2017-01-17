@@ -1,4 +1,4 @@
-Template test2
+Template {{title}}
 
 {{#posts}}
 <h1>{{postNum}}.{{title}}</h1>
@@ -8,3 +8,7 @@ Template test2
 No Posts!
 {{/posts}}
 
+{{^posts}}
+No Posts!
+{{else}}Not no Posts!
+{{/posts}}

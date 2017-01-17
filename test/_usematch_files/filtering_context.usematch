@@ -1,7 +1,7 @@
 Template {{title #indentor}}
 
-{{#posts #indentor {blocky:"[]" } }}
-<h1>{{postNum}}. {{blocky}}{{title}}</h1>
+{{#posts #indentor {sq:"[]" } }}
+<h1>{{sq #indentor}} {{title}}</h1>
 {{content}}
 <hr/>
 {{else}}

@@ -1,11 +1,11 @@
 Template > Test 6
 
 > 
-> <h1>1. []First Post!</h1>
+> <h1>> [] First Post!</h1>
 > Oh yeah!
 > <hr/>
 > 
-> <h1>2. []Second Post!</h1>
+> <h1>> ** Second Post!</h1>
 > Oh yeah, but not as much!
 > <hr/>
 > 

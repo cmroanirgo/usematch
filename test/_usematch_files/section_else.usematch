@@ -1,0 +1,16 @@
+Template test2
+
+{{#posts}}
+<h1>{{postNum}}.{{title}}</h1>
+{{content}}
+<hr/>
+{{else}}
+No Posts!
+{{/posts}}
+{{#i_dont_exist}}
+{{else}}I Don't Exist
+{{/i_dont_exist}}{{^i_dont_exist}}
+I Really Don't Exist
+{{else}}
+Foo
+{{/i_dont_exist}}
