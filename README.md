@@ -54,6 +54,50 @@ It has a lot more flexibility over the original engine:
 		}
 		```
 
+- data filters on sections:
+	+ `{{#posts @dataFilter}}{{title}}{{/posts}}`
+		```js
+		eg: var o = {
+			posts: [
+				{title:'first post', bg_image:'/images/custom_bg.jpg', ... },
+				{title:'second post' ... }
+			],
+			dataFilter: function(posts, params) { 
+				return posts.slice(0,1).map(function(post) { return post.title.toUpperCase(); });
+			};
+		}
+		```
+
+	+ Automagic data filtering with `<section>.prefilter`. eg. `{{#posts}}{{title}}{{/posts}}`:
+		```js
+		eg: var o = {
+			posts: [ ... ],
+			'posts.prefilter': function(posts, params) { 
+				return posts.slice(0,1).map(function(post) { return post.title.toUpperCase(); });
+			};
+		}
+		```
+	+ Parameters to data filters `{{#posts @customFilter{len:10} }}{{title}}{{/posts}}`
+		```js
+		eg: var o = {
+			posts: [ ... ],
+			customFilter: function(posts, params) { 
+				return posts.slice(0,params.len || 5);
+			};
+		}
+		```
+
+	+ `{{#posts #xmlEscape}}`, or `{{>posts #xmlEscape}}`
+		```js
+		for var o = {
+			posts: [
+				{title:'first post' ... },
+				{title:'second post' ... }
+			],
+			xmlEscape: function(text) { return text.replace(/&/g, '&amp;')....; }; // 
+		}
+		```
+
 - sections can be functions too (like mustache). (They must return either a string, OR an array of objects):
 	+ `{#posts} ... {/posts}`
 
