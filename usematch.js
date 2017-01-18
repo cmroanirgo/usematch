@@ -553,7 +553,7 @@ function _preFilterValue(value, context, token) {
 			}
 			if (!isFunction(fn))
 				throw new Error("Pre-filter '" + filterName + "' is not a function: " + require('util').inspect(context));
-			value = fn.call(context, value, filterObj.params);
+			value = fn.call(context, value, filterObj.params||{});
 
 		})
 	}
