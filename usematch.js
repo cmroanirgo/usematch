@@ -194,20 +194,23 @@ var __MATCHES = {};
 	// eg: This is valid: "^%&*_ok!@#hereº¡§ª"
 	//     This isn't"    "'name'"		(but "name" is ok)
 __MATCHES.NAME=               /[^\s\'\"\(\)\{\}\uD800-\uDFFF]+/
-__MATCHES.PARAMETERS=         /(?:\s+(.+?))??\s*/ // this is 'to the right' of a tag's name
+// NB: we don't use \s here, deliberately, to force tags & params onto one line (& that's the only reason)
+//   (+It's better to be strict here, rather than a bit sloppy and have potential issues later on with edge case 'gotchas')
+//		We can always add a little flexibility later, if demands require it.
+__MATCHES.PARAMETERS=         /(?: +(.+?))?? */ // this is 'to the right' of a tag's name. The ?? == 'match 0 or 1 times, but be a lazy match'. 
 __MATCHES.SECTION_START= _reM(/ *\# *(NAME)PARAMETERS/)
 __MATCHES.SECTION_END=   _reM(/ *\/ *(NAME)PARAMETERS/)
 __MATCHES.SECTION_NOT=   _reM(/ *\^ *(NAME)PARAMETERS/)
 __MATCHES.SECTION_ELSE=       / *(?:ELSE|else)\s*/
 __MATCHES.PARTIAL=       _reM(/ *\> *(NAME)PARAMETERS/)
-__MATCHES.COMMENT=       _reM(/ *\![\s\S]*?/)
+__MATCHES.COMMENT=       _reM(/ *\![\s\S]*?/)	// This is the only field that should go over multiple lines
 __MATCHES.VALUE=         _reM(/ *(NAME)PARAMETERS/)
 __MATCHES.RAW=           _reM(/ *\& *(NAME)PARAMETERS/)
 __MATCHES.RAW_BRACED=    _reM(/ *\{ *(NAME) *\} */),
 __MATCHES.TAG_CHANGE=         /\=([\S]{1,10}) +([\S]{1,10})\=/  // note the SPACE literal ' '+, rather than \s+
 
-var PARAMETER_MATCHES = { 
-	PRE_FILTER:         _reM(/^\s*\@(NAME)?(\{.*?\})?(?:\s+|$)/),
+var PARAMETER_MATCHES = { // NB: although using \s, the above PARAMETERS means that this will ONLY be spaces
+	PRE_FILTER:         _reM(/^\s*\@(NAME)?(\{.*?\})?(?:\s+|$)/), 
 	POST_FILTER:        _reM(/^\s*\#(NAME)(\{.*?\})?(?:\s+|$)/),
 	CONTEXT_REF:        _reM(/^\s*\&(NAME)(?:\s+|$)/),
 	CONTEXT:                 /^\s*(\{.*\})(?:\s+|$)/ 
@@ -321,7 +324,7 @@ function _parse(template, options) {
 		var m = {
 			// special RegExp. It's the one that matches all the other RegExps :)
 			TAG_START:    new RegExp(_reEscape(options.tag_start)),
-			TAG_END:    new RegExp(_reEscape(options.tag_end)),
+			//TAG_END:    new RegExp(_reEscape(options.tag_end)),
 		}
 		for (var key in __MATCHES) {
 			// for the other RegExps, turn them into ^{{...}}
@@ -488,9 +491,18 @@ function _parse(template, options) {
 				;
 			// else it must be just text. loop around
 			else {
+				if (scanner.last_scan>=0) {
+					// got a +ve match for an open brace. but didn't match anything above. Treat this as text.
+					// (if we eventually find a closing brace, it will then be treated as text too)
+					// See usematch test case: 'basic_fields_comments'
+					m = scanner.match(MATCHES.TAG_START);
+					tokens.push(TOKEN.TEXT, null, m[0]);
+				}
+				/* replaced by above
 				text = scanner.scanUntil(MATCHES.TAG_END);
 				l("No matches for: '" + scanner.text.substr(0,100).replace(/\n/g, '\\n') +"'...")
 				scanner.match(MATCHES.TAG_END); // eat the match
+				*/
 				if (loopCheckPos == scanner.pos) {
 					logObj("Aborting due to infinite loop detection:\n", scanner)
 					logObj("    Tag Start = ", MATCHES.TAG_START  )
@@ -641,8 +653,9 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 		return _render(tokens, c, options);
 
 	} else if (isObject(section)) {
-		// the section is it's own context
+		// the section is it's own context, but make its properties (aka keys) available as an array.
 		var c = extend({}, context, section);
+		c['keys'] = Object.keys(section);
 		logObj("\nContext for object section "+name+": \n", c);l("\n\n")
 		return _render(tokens, c, options)
 	} else  {
