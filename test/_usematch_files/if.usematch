@@ -1,0 +1,12 @@
+{{if calc = 12}}{{calc}}{{endif}}
+{{if calc = 2}}{{calc}}{{endif}}
+{{if calc <> 9}}Not Nine{{endif}}
+{{if calc != 9}}Not Nine{{endif}}
+{{if calc = 12}}Is Twelve{{endif}}
+{{if calc == 12}}Is Twelve{{endif}}
+{{if title == If Test}}If Test= OK{{endif}}
+{{if title == 'If Test'}}If Test= OK{{endif}}
+{{if title =="If Test"   }}If Test= OK{{endif}}
+{{if title == 'If' Test}}Fail{{ELSE}}Else Test= OK{{endif}}
+{{if title != 'If' Test}}Not Test= OK{{ELSE}}Fail{{endif}}
+{{if title <>'If Test'}}Fail{{else}}Else Test= OK{{endif}}

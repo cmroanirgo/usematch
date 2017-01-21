@@ -44,6 +44,21 @@ function extend(dest) { // does a 'shallow' copy/merge of values
 
 		return dest
 	}
+function _coerceToType(val, type) {
+	var types = {
+		date: function(val) { return new Date(Date.parse(val)); },
+		number: function(val) { return String.parseInt(val, 10); },
+		boolean: function(val) { return !!val; }
+	}
+	try {
+		if (types[type])
+			return types[type](val);
+	}
+	catch (e) {
+		// eat all errors. They're expected!
+	}
+	return val; // failed. Leave it 'as-is'
+}
 
 // string trimmers
 
@@ -178,8 +193,9 @@ We use a different method to parse the template from mustache.
 var TOKEN = { // note that these token values are ARBITARY. They can be numeric, or whatever.
 	TEXT: "text",		// data = text
 	VALUE: "value",		// data = { name:name, raw:true|(undefined), PARAMETERS}
-	SECTION_START: "#", // data = { name:name, tokens:[], elseTokens:[]|undefined, PARAMETERS}
+	SECTION_START: "#", // data = { name:name, tokens:[], elseTokens:[]|undefined, template:string, elseTemplate:string|undefined, PARAMETERS}
 	SECTION_NOT: "^", 	// 	(same as above SECTION_START), only meaning is reversed
+	IF:"if",			// data = SECTION_START with { op:=|<> value:value }
 	PARTIAL: ">",       // data = { name:name, PARAMETERS}
 
 	// NB: PARAMETERS one or more of:
@@ -198,10 +214,13 @@ __MATCHES.NAME=               /[^\s\'\"\(\)\{\}\uD800-\uDFFF]+/
 //   (+It's better to be strict here, rather than a bit sloppy and have potential issues later on with edge case 'gotchas')
 //		We can always add a little flexibility later, if demands require it.
 __MATCHES.PARAMETERS=         /(?: +(.+?))?? */ // this is 'to the right' of a tag's name. The ?? == 'match 0 or 1 times, but be a lazy match'. 
+//__MATCHES.IF_STATEMENT=       / +(NAME) *(\=\=?|\<\>|\!\=|\<|\>|\<\=|\>\=)?(\S.*?) */ 
 __MATCHES.SECTION_START= _reM(/ *\# *(NAME)PARAMETERS/)
 __MATCHES.SECTION_END=   _reM(/ *\/ *(NAME)PARAMETERS/)
 __MATCHES.SECTION_NOT=   _reM(/ *\^ *(NAME)PARAMETERS/)
-__MATCHES.SECTION_ELSE=       / *(?:ELSE|else)\s*/
+__MATCHES.ELSE=               / *(?:ELSE|else) */
+__MATCHES.IF_START     = _reM(/ *(?:IF|if) +(NAME) *(\=\=?|\<\>|\!\=|\<|\>|\<\=|\>\=)? *(.*?) */)   // eg. {{ if title "post"}} or {{ if title = "post"}} or {{ if title == "post"}} or {{ if title = post}} == ALL THE SAME
+__MATCHES.IF_END       =      / *(?:ENDIF|endif) */
 __MATCHES.PARTIAL=       _reM(/ *\> *(NAME)PARAMETERS/)
 __MATCHES.COMMENT=       _reM(/ *\![\s\S]*?/)	// This is the only field that should go over multiple lines
 __MATCHES.VALUE=         _reM(/ *(NAME)PARAMETERS/)
@@ -214,6 +233,15 @@ var PARAMETER_MATCHES = { // NB: although using \s, the above PARAMETERS means t
 	POST_FILTER:        _reM(/^\s*\#(NAME)(\{.*?\})?(?:\s+|$)/),
 	CONTEXT_REF:        _reM(/^\s*\&(NAME)(?:\s+|$)/),
 	CONTEXT:                 /^\s*(\{.*\})(?:\s+|$)/ 
+};
+
+var OP = { // used in IF section
+	EQ: "=",
+	NE: "<>",
+	LT: "<",
+	GT: ">",
+	LTE: "<=",
+	GTE: ">="
 };
 
 function _reM(re) { return _reFriendlyA(re, ['NAME', 'PARAMETERS'], [__MATCHES.NAME, __MATCHES.PARAMETERS], false); }
@@ -309,7 +337,7 @@ __Tokens.prototype.close = function() { // make this class readonly & return jus
 	return tokens;
 };
 
-
+var matchesLogged = false;
 function _parse(template, options) {
 	if (options.log === true) l = console.log;
 	var scanner = new Scanner(template);
@@ -381,9 +409,27 @@ function _parse(template, options) {
 		sections.push({section:sectionToken, tokens: sectionToken.data.tokens, pos:scanner.pos} );
 		tokens = sectionToken.data.tokens; // start working in a child token list
 	}
+	function beginIfSection(name, op, value, options) {
+		if (op===undefined) op = OP.EQ;
+		if (op=='==') op = OP.EQ; // we also handle ==
+		if (op=='!=') op = OP.NE; // we also handle !=
+		var found = false;
+		for (var o in OP) {
+			if (OP[o]==op)
+				found = true;
+		}
+		if (!found)
+			throw new SyntaxError("Unknown operator type: '"+op+"' for IF section '" + name + "' and value = '"+value+"'")
+
+		var data = {tokens:new __Tokens(), template:'', op:op, value:value}
+		var sectionToken = tokens.push(TOKEN.IF, name, data, {});
+		sections.push({section:sectionToken, tokens: sectionToken.data.tokens, pos:scanner.pos} );
+		tokens = sectionToken.data.tokens; // start working in a child token list
+	}
 
 	var MATCHES = makeMATCHES(options);
-	//logObj("MATCHES:\n",MATCHES)
+	if (!matchesLogged) logObj("MATCHES:\n",MATCHES)
+		matchesLogged = true;
 	var loopCheckPos = -1;
 
 	while (!scanner.eos()) {
@@ -422,9 +468,15 @@ function _parse(template, options) {
 				beginSection(name, parameters, false, current_options)
 			}))
 				;
-			else if (m = scanner.match(MATCHES.SECTION_ELSE, function(name, parameters) {
+			else if (m = scanner.match(MATCHES.IF_START, function(name, op, value) {
+				// found: {{^IF name op value}}
+				l("Found IF {{...}}: '" + name + "', '"+op+"', '"+value+"'")
+				beginIfSection(name, op, value, current_options)
+			}))
+				;
+			else if (m = scanner.match(MATCHES.ELSE, function(name, parameters) {
 				// found: {{else}}
-				l("Found section {{else}}")
+				l("Found {{else}}") // this works for {{#name}}...{{/name}} and {{if name}}..{{endif}}
 				if (!sections.length)
 					throw new Error("Found ELSE but no section!")
 				var currentSectionInf = sections[sections.length-1];
@@ -435,11 +487,38 @@ function _parse(template, options) {
 				tokens = currentSectionInf.tokens = sectionData.elseTokens = new __Tokens();
 			}))
 				;
+			else if (m = scanner.match(MATCHES.IF_END, function() {
+				// found: {{endif}}
+				l("Found {{endif}}") 
+				var currentSectionInf = sections.pop();
+				if (!currentSectionInf  || currentSectionInf.section.type!=TOKEN.IF)
+					throw new Error("Unexpected endif found")
+				// 'close' the tokens in the section
+				var sectionData = currentSectionInf.section.data;
+				sectionData.tokens = sectionData.tokens.close();
+				if (!!sectionData.elseTokens) {
+					sectionData.elseTemplate = template.substr(currentSectionInf.pos, scanner.prevPos-currentSectionInf.pos)
+					l("section elseTemplate is: " + sectionData.elseTemplate)
+					sectionData.elseTokens = sectionData.elseTokens.close();
+				}
+				else
+				{
+					sectionData.template = template.substr(currentSectionInf.pos, scanner.prevPos-currentSectionInf.pos)
+					l("section template is: " + sectionData.template)
+				}
+
+				// reset the tokens to the new top of sections, or root
+				if (sections.length>0)
+					tokens = sections[sections.length-1].tokens;
+				else
+					tokens = _rootTokens;			
+			}))
+				;
 			else if (m = scanner.match(MATCHES.SECTION_END, function(name) {
 				// found: {{/name}}
 				l("Found end section {{/...}}: '" + name + "'")
 				var currentSectionInf = sections.pop();
-				if (!currentSectionInf)
+				if (!currentSectionInf  || !(currentSectionInf.section.type==TOKEN.SECTION_START ||currentSectionInf.section.type==TOKEN.SECTION_NOT))
 					throw new Error("Unexpected end of section: '" +name + "'")
 				if (currentSectionInf.section.name != name)
 					throw new Error("Expected end of section for '"+currentSectionInf.section.name+"', but got '"+name+"'");
@@ -674,6 +753,32 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 
 }
 
+function _renderSectionValue(token, value, context, options, isSection) 
+{
+	// yeah. sorry. A mind futz ensues....
+	var okSection = false; // is the main 'token.data.tokens' array good to be used?
+	if (isSection) // non-inverted
+		okSection = !isFalsy(value);
+	else  // inverted
+		okSection = isFalsy(value);
+
+	logObj("\n\n"+(isSection? '' : "^NOT ")+ "Section '"+token.name+"' is ok: " + okSection + "  value=", value);
+
+	if (!value)
+		value = {};
+	if (okSection) {
+		// render using the main tokens
+		return _filterValue(_renderSectionTokens(token.name, token.data.tokens, value, context, options), context, token)
+	}
+	else {
+		// render using the 'else' tokens, if present, otherwise empty string
+		if (token.data.elseTokens)
+			return _filterValue(_renderSectionTokens("else " + token.name, token.data.elseTokens, value, context, options), context, token)
+		else
+			return '';
+	}
+}
+
 function _renderSection(token, context, options, isSection) {
 	var currentContext = _getContext(context, token);
 	var section = _findValue(token.name, currentContext);
@@ -709,31 +814,39 @@ function _renderSection(token, context, options, isSection) {
 	}
 
 	if (section)
-		section = _preFilterValue(section, context, token);
+		section = _preFilterValue(section, currentContext, token);
+	return _renderSectionValue(token, section, currentContext, options, isSection);
 
-	// yeah. sorry. A mind futz ensues....
-	var okSection = false; // is the main 'token.data.tokens' array good to be used?
-	if (isSection) // non-inverted
-		okSection = !isFalsy(section);
-	else  // inverted
-		okSection = isFalsy(section);
+}
 
-	logObj("\n\n"+(isSection? '' : "^NOT ")+ "Section '"+token.name+"' is ok: " + okSection + "  value=", section);
 
-	if (!section)
-		section = {};
-	if (okSection) {
-		// render using the main tokens
-		return _filterValue(_renderSectionTokens(token.name, token.data.tokens, section, currentContext, options), currentContext, token)
+
+function _renderIfSection(token, context, options) {
+	var currentContext = context; // there is no _getContext(context, token) needed for: if {{IF ...}}
+	var left = _findValue(token.name, currentContext);
+	var right = token.data.value;
+
+	if (right===undefined || right === '')
+		// no R-value specified. It works the same as {{#section}} {{/section}}
+		return _renderSectionValue(token, left, context, options, token.data.op==OP.EQ);
+	if (left===undefined)
+		// no L-value available. Make it empty/falsish
+		left = '';
+
+	right = trimLR(right.toString(), ["'", '"']);
+	var isIf = false;
+	switch(token.data.op){
+		case OP.EQ: isIf = left.toString() == right; break;
+		case OP.NE: isIf = left.toString() != right; break;
+		case OP.LT: isIf = left < _coerceToType(right, typeof left); break;
+		case OP.GT: isIf = left > _coerceToType(right, typeof left); break;
+		case OP.LTE: isIf = left <= _coerceToType(right, typeof left); break;
+		case OP.GTE: isIf = left >= _coerceToType(right, typeof left); break;
+		default:
+			throw new Error("Unexpected. Unknown operator type '"+token.data.op+"' for if section '"+token.name+"'")
 	}
-	else {
-		// render using the 'else' tokens, if present, otherwise empty string
-		if (token.data.elseTokens)
-			return _filterValue(_renderSectionTokens("else " + token.name, token.data.elseTokens, section, currentContext, options), currentContext, token)
-		else
-			return '';
-	}
-
+	l("IfSection: " + token.name + "(" + left + ") " + token.data.op + " " + right + ". Result = " + isIf)
+	return _renderSectionValue(token, isIf ? left : null, context, options, true);
 }
 
 function _render(tokens, context, options) {
@@ -767,6 +880,10 @@ function _render(tokens, context, options) {
 				break;
 			case TOKEN.SECTION_NOT:
 				strings.push(_renderSection(token, context, options, false));
+				break;
+
+			case TOKEN.IF:
+				strings.push(_renderIfSection(token, context, options));
 				break;
 
 			case TOKEN.PARTIAL:
