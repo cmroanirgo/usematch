@@ -665,6 +665,14 @@ function _preFilterValue(value, context, token) {
 	return value;
 }
 
+function _valueToKeyValues(context) {
+	var values = [];
+	for (var key in context)
+		values.push({key:key, value: context[key]})
+	logObj(" ==> ", values)
+	return values;
+
+}
 function _findValue(name, _context, _callIfFunction) {
 	if (_callIfFunction===undefined) _callIfFunction = true;
     var value, context = _context, names, index, lookupHit = false;
@@ -686,14 +694,27 @@ function _findValue(name, _context, _callIfFunction) {
 			* `undefined` and we want to avoid looking up parent contexts.
 			**/
 			while (context != null && index < names.length) {
-				if (index === names.length - 1)
-					lookupHit = hasProperty(context, names[index]);
+				if (names[index] == '*') {
+					//special case. convert the current object to a list of key/values
+					context = _valueToKeyValues(context);
+					lookupHit = index === names.length - 1;
+					index++;
+				}
+				else
+				{
+					if (!lookupHit && index === names.length - 1)
+						lookupHit = hasProperty(context, names[index]);
 
-				context = context[names[index++]];
+					context = context[names[index++]];
+				}
 			}
 			value = context;
 		} else {
-			value = context[name];
+			if (names == '*')
+				//special case. convert the current object to a list of key/values
+				value = _valueToKeyValues(context);
+			else
+				value = context[name];
 			lookupHit = true; // hasProperty(context, name);
 		}
 	}

@@ -1,0 +1,6 @@
+Tag: tag1
+first post
+2nd post
+Tag: tag2
+first post
+3rd post

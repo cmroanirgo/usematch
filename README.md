@@ -88,7 +88,7 @@ It has a lot more flexibility over the original engine:
 		```
 
 - sections can be functions too (like mustache). (They must return either a string, OR an array of objects):
-	+ `{#posts} ... {/posts}`
+	+ `{{#posts}} ... {{/posts}}`
 
 	 	```js
 	 	eg: var o = {
@@ -114,6 +114,23 @@ It has a lot more flexibility over the original engine:
 				}}
 			}
 	 	```
+- Iterate any object by key/value:
+	+ `{{#tags.*}}Tag:{{key}} Items:{{#value}}{{title}}{{/value}}{{/tags.*}}`
+	 	```js
+	 	eg: var o = {
+				tags: {
+					tag1: [
+						{title:'first post'},
+						{title:'2nd post'},
+					],
+					tag2: [
+						{title:'first post'},
+						{title:'3rd post'},
+					]
+				}
+	 		}
+	 	```
+
 
 ## Usage
 
