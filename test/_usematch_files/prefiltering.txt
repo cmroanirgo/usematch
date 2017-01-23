@@ -65,3 +65,11 @@ I am post #12
 I am post #13
 I am post #14
 I am post #15
+===
+Nested objects:
+
+I am post #1
+I am post #2
+I am post #3
+I am post #4
+I am post #5

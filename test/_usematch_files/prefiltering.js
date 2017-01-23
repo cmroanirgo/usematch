@@ -8,7 +8,7 @@ function _makePosts() {
 
 function _customFilter(posts, params) {
 	//console.log("\n\n_customFilter called with params: " + JSON.stringify(params))
-	params = params || {};
+	//params = params || {};
 	// sort first, then slice (otherwise will only ever get the first 'n' sorted)
 	if (params.sortBy || params.sort) {
 		params.sort = params.sort||'desc';
@@ -31,7 +31,13 @@ function _customFilter(posts, params) {
 ({
 	posts:  _makePosts,
 	posts2: _makePosts,
-	'posts2.prefilter': _customFilter,
+	posts3: _makePosts,
+	nested: { posts4: _makePosts },
+	prefilter: { // hierarchical decl'
+		posts2: _customFilter,
+		nested: { posts4: _customFilter} 
+		}, 
+	'prefilter.posts3': _customFilter, // alternate method of declaration
 	postNum: function() { 
 			return (this.posts().findIndex(
 						function(post) { return post.title==this.title; }, 

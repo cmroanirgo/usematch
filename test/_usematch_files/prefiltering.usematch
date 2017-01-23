@@ -19,5 +19,9 @@ I call the auto prefilter, without params:
 {{title}}{{/posts2}}
 ===
 Automagic pre-filter:
-{{#posts2 }}
-{{title}}{{/posts2}}
+{{#posts3}}
+{{title}}{{/posts3}}
+===
+Nested objects:
+{{#nested}}{{#posts4 @{len:5} }}
+{{title}}{{/posts4}}{{/nested}}

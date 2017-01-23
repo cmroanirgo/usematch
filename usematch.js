@@ -634,11 +634,13 @@ function _filterValue(value, context, token) {
 function _preFilterValue(value, context, token) {
 	if (token.params && token.params.prefilters && token.params.prefilters.length) {
 		token.params.prefilters.forEach(function(filterObj) {
-			var filterName = filterObj.name || token.name+".prefilter";
+			var filterName = filterObj.name || "prefilter."+token.name;
 			var fn = _findValue(filterName, context, false);
 			if (!fn) {
-				if (!filterObj.name) // autofiltered?
+				if (!filterObj.name) {// autofiltered?
+					//l("Auto @pre-filter '" + filterName + "' is not found. val="+fn);
 					return;// can't find, don't worry
+				}
 				else
 					throw new Error("Named pre-filter reference '" + filterObj.name + "' not found");
 			}
@@ -650,13 +652,14 @@ function _preFilterValue(value, context, token) {
 	}
 	else
 	{
-		// look for section.prefilter...
-		var filterName = token.name+".prefilter";
+		// look for prefilter.section...
+		var filterName = "prefilter."+token.name;
 		var fn = _findValue(filterName, context, false);
-		if (!fn)
+		if (!fn || !isFunction(fn)){
+			//l("Auto pre-filter '" + filterName + "' is not found. val="+fn);
 			return value;// can't find, don't worry
-		if (!isFunction(fn))
-			throw new Error("Auto pre-filter '" + filterName + "' is not a function: " + require('util').inspect(context));
+			//throw new Error("Auto pre-filter '" + filterName + "' is not a function: " + require('util').inspect(context))
+		}
 		value = fn.call(context, value, {});
 	}
 	return value;
@@ -734,7 +737,12 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 	} else if (isObject(section)) {
 		// the section is it's own context, but make its properties (aka keys) available as an array.
 		var c = extend({}, context, section);
-		c['keys'] = Object.keys(section);
+
+		// this makes: prefilter:{ nested:{x:function...}} ==> prefilter{x:function...}
+		if (!!context.prefilter && !isFunction(context.prefilter[name]))
+			extend(c.prefilter, context.prefilter[name])
+
+		c['.'] = name;
 		logObj("\nContext for object section "+name+": \n", c);l("\n\n")
 		return _render(tokens, c, options)
 	} else  {
