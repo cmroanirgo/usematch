@@ -760,7 +760,7 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 		var c = extend({}, context, section);
 
 		// this makes: prefilter:{ nested:{x:function...}} ==> prefilter{x:function...}
-		if (!!context.prefilter && !isFunction(context.prefilter[name]))
+		if (!!context.prefilter && !!context.prefilter[name])
 			extend(c.prefilter, context.prefilter[name])
 
 		c['.'] = name;
