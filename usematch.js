@@ -734,7 +734,12 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 	if (isArray(section) && section.length>0) {
 		var strings = [];
 		for (var s=0; s<section.length; s++) {
-			var c = extend({}, context);
+			var c = extend({
+				isFirst: s==0,
+				isLast: s==section.length-1,
+				prev: s>0 ? section[s-1] : null,
+				next: s<section.length-1 ? section[s+1] : null
+			}, context);
 			if (isSimpleObject(section[s]) )
 				c['.']=section[s]; // this is a special wierd mustachian thing where a section can be just an array of strings. The inner template is {{.}}
 			else
