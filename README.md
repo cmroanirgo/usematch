@@ -66,13 +66,17 @@ It has a lot more flexibility over the original engine:
 		}
 		```
 
-	+ Automagic data filtering with `<section>.prefilter`. eg. `{{#posts}}{{title}}{{/posts}}`:
+	+ Automagic data filtering with `prefilter.<section>`. eg. `{{#posts}}{{title}}{{/posts}}`:
 		```js
 		eg: var o = {
 			posts: [ ... ],
-			'posts.prefilter': function(posts, params) { 
-				return posts.slice(0,1).map(function(post) { return post.title.toUpperCase(); });
-			};
+			prefilter: {
+				posts: function(posts, params) { 
+					return posts.slice(0,1).map(function(post) { return post.title.toUpperCase(); });
+				}
+			}
+			// OR:
+			// 'prefilter.posts' : function(....
 		}
 		```
 	+ Parameters to data filters `{{#posts @customFilter{len:10} }}{{title}}{{/posts}}`
