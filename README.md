@@ -19,21 +19,8 @@ It has a lot more flexibility over the original engine:
 	+ `{{name {name:'John Doe'} }}`
 	+ `{{#posts {bg_image:'/images/bg.jpg'} }}`
 	+ `{{>post_page {author: 'John Doe'} }}`
+	+ __See also references below__
 
-	- default contexts can also be a reference:
-		+ `{{#posts &default_post}}{{upperTitle}}{{/posts}}`
-		```js
-		eg: var o = {
-				posts: [
-					{title:'first post', bg_image:'/images/custom_bg.jpg', ... },
-					{title:'second post' ... }
-				],
-				default_post: {
-					bg_image: '/images/bg.jpg'
-					upperTitle: function() { return this.title.toUpperCase() } // eg. 'FIRST POST'
-				}
-			}
-		```
 - filters on everything:
 	+ `{{name #toUppper}}`
 		```js
@@ -130,6 +117,26 @@ It has a lot more flexibility over the original engine:
 				}
 	 		}
 	 	```
+- References:
+	+ default contexts can also be a reference `{{#posts &default_post}}{{upperTitle}}{{/posts}}`:
+		```js
+		eg: var o = {
+				posts: [
+					{title:'first post', bg_image:'/images/custom_bg.jpg', ... },
+					{title:'second post' ... }
+				],
+				default_post: {
+					bg_image: '/images/bg.jpg'
+					upperTitle: function() { return this.title.toUpperCase() } // eg. 'FIRST POST'
+				}
+			}
+		```
+	+ include/partials as a reference `{{> &menu_name }}`:
+		```js
+		eg: var o = {
+				menu_name: "navbar-menu.html"
+			}
+		```
 
 
 ## Usage

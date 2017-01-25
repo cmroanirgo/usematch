@@ -11,8 +11,13 @@ Mustache on acid: usematch
 */
 
 
+
+var logColorFgRed = "\x1b[31m";
+var logColorReset = "\x1b[0m";
+function err(str) { console.log(logColorFgRed + str + logColorReset); } // error logging function
+function dump(obj) { require('util').inspect(context, {colors:true})}
 var l = function() { } // a logging function. It is enabled with options.log === true
-function logObj(str, obj) { l(str + " " + require('util').inspect(obj, {colors:true})) } 
+function logObj(str, obj) { l(str + " " + dump(obj)) } 
 
 // simple helper functions
 function _objIsType(obj, typeStr) { return Object.prototype.toString.call(obj) === '[object '+typeStr+']'}
@@ -553,7 +558,13 @@ function _parse(template, options) {
 				// found: {{>partial optional_params}}
 				l("Found partial {{>...}}: '" + name + "'")
 				var params = readParameters(name, parameters);
-				tokens.push(TOKEN.PARTIAL, name, null, params)
+				var data = {}
+				if (name[0]=='&') {
+					// a reference
+					data.reference = true;
+					name = name.substr(1)
+				}
+				tokens.push(TOKEN.PARTIAL, name, data, params)
 			}))
 				;
 			else if (m = scanner.match(MATCHES.COMMENT, function() {
@@ -624,7 +635,7 @@ function _filterValue(value, context, token) {
 		if (!fn)
 			throw new Error("Named filter reference '" + filterObj.name + "' not found");
 		if (!isFunction(fn))
-			throw new Error("Named filter reference '" + filterObj.name + "' is not a function: " + require('util').inspect(context));
+			throw new Error("Named filter reference '" + filterObj.name + "' is not a function: " + dump(context));
 		value = fn.call(context, value, filterObj.params);
 
 	})
@@ -641,11 +652,14 @@ function _preFilterValue(value, context, token) {
 					//l("Auto @pre-filter '" + filterName + "' is not found. val="+fn);
 					return;// can't find, don't worry
 				}
-				else
-					throw new Error("Named pre-filter reference '" + filterObj.name + "' not found");
+				else {
+					//throw new Error("Named pre-filter reference '" + filterObj.name + "' not found");
+					err("Named pre-filter reference '" + filterObj.name + "' not found");
+					return;
+				}
 			}
 			if (!isFunction(fn))
-				throw new Error("Pre-filter '" + filterName + "' is not a function: " + require('util').inspect(context));
+				throw new Error("Pre-filter '" + filterName + "' is not a function: " + dump(context));
 			value = fn.call(context, value, filterObj.params||{});
 
 		})
@@ -658,7 +672,7 @@ function _preFilterValue(value, context, token) {
 		if (!fn || !isFunction(fn)){
 			//l("Auto pre-filter '" + filterName + "' is not found. val="+fn);
 			return value;// can't find, don't worry
-			//throw new Error("Auto pre-filter '" + filterName + "' is not a function: " + require('util').inspect(context))
+			//throw new Error("Auto pre-filter '" + filterName + "' is not a function: " + dump(context))
 		}
 		value = fn.call(context, value, {});
 	}
@@ -775,7 +789,7 @@ function _renderSectionTokens(name, tokens, section, context, options) {
 		// a mustachian weirdness.
 		// section is used, but it's defined just as value, (& the inner template refers to itself)
 		//.eg {#length} The length is:{{length}}{{/length}}
-		l("WARNING! Unexpected")
+		err("WARNING! Unexpected")
 		throw new Error("Unexepected. Cannot render section name '" + name + "' unknown type = "+ (typeof section));
 		var c = extend({}, context);
 		c[name] = section; // inject the section name as a value
@@ -922,10 +936,22 @@ function _render(tokens, context, options) {
 
 			case TOKEN.PARTIAL:
 				currentContext = _getContext(context, token);
-				value = _findValue(token.name, options.partials)
+				var name = token.name;
+				if (token.data.reference) {
+					var ref_name = _findValue(token.name, context);
+					if (!ref_name) {
+						err("Partial reference '" + token.name + "' not found")
+						value = '';
+					}
+					else
+						value = _findValue(ref_name, options.partials)
+				}
+				else
+					value = _findValue(token.name, options.partials)
 				if (value===null || value===undefined) {
-					value='';
-					logObj("Partial '"+token.name+"' not found in: ", options.partials)
+					err("Partial '"+token.name+"' not found")
+					//throw new Error("Could not find partial '"+token.name+"'")
+					value = '';
 				}
 				strings.push(_render(_parse(value, options), currentContext, options));
 				break;
