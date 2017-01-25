@@ -1,0 +1,4 @@
+{{#tags #split{char:','} #join }}{{.}}{{/tags}}
+{{tags #split{char:','} #join{char:' @ '} }}
+{{#tags |split | join }}{{.}}{{/tags}}
+{{tags | split |join{char:' > '} }}

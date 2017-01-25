@@ -22,7 +22,7 @@ It has a lot more flexibility over the original engine:
 	+ __See also references below__
 
 - filters on everything:
-	+ `{{name #toUppper}}`
+	+ `{{name #toUpper}}` or `{{name | toUpper}}`: (synonymous)
 		```js
 		eg: var o = {
 			name: "John Doe",
@@ -30,14 +30,25 @@ It has a lot more flexibility over the original engine:
 		}
 		```
 
-	+ `{{#posts #xmlEscape}}`, or `{{>posts #xmlEscape}}`
+	+ `{{title #xmlEscape}}`, or `{{#posts #xmlEscape}}`, or `{{>posts #xmlEscape}}`
 		```js
 		for var o = {
 			posts: [
 				{title:'first post' ... },
 				{title:'second post' ... }
 			],
-			xmlEscape: function(text) { return text.replace(/&/g, '&amp;')....; }; // 
+			xmlEscape: function(text) { return text.replace(/&/g, '&amp;')....; }; 
+		}
+		```
+	+ parameters, eg. `{{tags | split{char:','} | join }}`
+		```js
+		for var o = {
+			tags: 'tag1, tag2, tag3',
+			split: function(text, params) { 
+				return text.split(params.char||',').map(
+						function(s) { return s.trim(); }); 
+				}, 
+			join: function(ar, params) { return ar.join(params.char||' | '); },
 		}
 		```
 
@@ -137,7 +148,8 @@ It has a lot more flexibility over the original engine:
 				menu_name: "navbar-menu.html"
 			}
 		```
-
+- Fallback values. Rather than using `{{#val}}{{val}}{{else}}{{othervalue}}{{/val}}` use:
+	+ `{{val || othervalue}}`
 
 ## Usage
 

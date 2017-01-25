@@ -15,7 +15,7 @@ Mustache on acid: usematch
 var logColorFgRed = "\x1b[31m";
 var logColorReset = "\x1b[0m";
 function err(str) { console.log(logColorFgRed + str + logColorReset); } // error logging function
-function dump(obj) { require('util').inspect(context, {colors:true})}
+function dump(obj) { return require('util').inspect(obj, {colors:true})}
 var l = function() { } // a logging function. It is enabled with options.log === true
 function logObj(str, obj) { l(str + " " + dump(obj)) } 
 
@@ -234,8 +234,10 @@ __MATCHES.RAW_BRACED=    _reM(/ *\{ *(NAME) *\} */),
 __MATCHES.TAG_CHANGE=         /\=([\S]{1,10}) +([\S]{1,10})\=/  // note the SPACE literal ' '+, rather than \s+
 
 var PARAMETER_MATCHES = { // NB: although using \s, the above PARAMETERS means that this will ONLY be spaces
+	OR_VALUE:           _reM(/^\s*\|\|\s*(NAME)(?:\s+|$)/),
 	PRE_FILTER:         _reM(/^\s*\@(NAME)?(\{.*?\})?(?:\s+|$)/), 
 	POST_FILTER:        _reM(/^\s*\#(NAME)(\{.*?\})?(?:\s+|$)/),
+	POST_FILTER_ALT:    _reM(/^\s*\|\s*(NAME)(\{.*?\})?(?:\s+|$)/),
 	CONTEXT_REF:        _reM(/^\s*\&(NAME)(?:\s+|$)/),
 	CONTEXT:                 /^\s*(\{.*\})(?:\s+|$)/ 
 };
@@ -372,13 +374,25 @@ function _parse(template, options) {
 		while (!param_scanner.eos())
 		{
 			logObj("\nParam scanner state is: \n", param_scanner)
-			if (param_scanner.match(PARAMETER_MATCHES.PRE_FILTER, function(filterName, params) {
-				if (!data.filters) data.prefilters = [];
+			if (param_scanner.match(PARAMETER_MATCHES.OR_VALUE, function(name) {
+				l("Alt name value detected: " +name)
+				if (!data.altNames) data.altNames = [];
+				data.altNames.push(name);
+			}))
+				;
+			else if (param_scanner.match(PARAMETER_MATCHES.PRE_FILTER, function(filterName, params) {
+				if (!data.prefilters) data.prefilters = [];
 				l("Prefilter detected: " +filterName + ' ' +params)
 				data.prefilters.push({name:filterName, params:_toJS(params)})
 			}))
 				;
-			if (param_scanner.match(PARAMETER_MATCHES.POST_FILTER, function(filterName, params) {
+			else if (param_scanner.match(PARAMETER_MATCHES.POST_FILTER, function(filterName, params) {
+				if (!data.filters) data.filters = [];
+				l("Filter detected: " +filterName + ' ' +params)
+				data.filters.push({name:filterName, params:_toJS(params)})
+			}))
+				;
+			else if (param_scanner.match(PARAMETER_MATCHES.POST_FILTER_ALT, function(filterName, params) {
 				if (!data.filters) data.filters = [];
 				l("Filter detected: " +filterName + ' ' +params)
 				data.filters.push({name:filterName, params:_toJS(params)})
@@ -636,7 +650,8 @@ function _filterValue(value, context, token) {
 			throw new Error("Named filter reference '" + filterObj.name + "' not found");
 		if (!isFunction(fn))
 			throw new Error("Named filter reference '" + filterObj.name + "' is not a function: " + dump(context));
-		value = fn.call(context, value, filterObj.params);
+		value = fn.call(context, value, filterObj.params||{});
+		logObj(' > filtered value is:', value)
 
 	})
 	return value;
@@ -917,6 +932,15 @@ function _render(tokens, context, options) {
 				value = _findValue(token.name, currentContext);
 				if (value===undefined || value===null) 
 					value='';
+				if (token.params && token.params.altNames && isFalsy(value)) {
+					token.params.altNames.some(function(name) {
+						value = _findValue(name, currentContext);
+						return !isFalsy(value)
+					})
+				}
+				if (value===undefined || value===null) 
+					value='';
+				
 				if (!token.data.raw)
 					value = _usematch.escape(value.toString())
 				value = _filterValue(value, currentContext, token);
