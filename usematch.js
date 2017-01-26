@@ -11,13 +11,18 @@ Mustache on acid: usematch
 */
 
 
+const util = require('util');
 
 var logColorFgRed = "\x1b[31m";
 var logColorReset = "\x1b[0m";
+var logging_enabled = false;
 function err(str) { console.log(logColorFgRed + str + logColorReset); } // error logging function
-function dump(obj) { return require('util').inspect(obj, {colors:true})}
+function dump(obj) { 
+	if (!logging_enabled) return '';
+	return util.inspect(obj, {colors:true});
+}
 var l = function() { } // a logging function. It is enabled with options.log === true
-function logObj(str, obj) { l(str + " " + dump(obj)) } 
+function logObj(str, obj) { if (logging_enabled) l(str + " " + dump(obj)) } 
 
 // simple helper functions
 function _objIsType(obj, typeStr) { return Object.prototype.toString.call(obj) === '[object '+typeStr+']'}
@@ -346,6 +351,7 @@ __Tokens.prototype.close = function() { // make this class readonly & return jus
 
 var matchesLogged = false;
 function _parse(template, options) {
+	logging_enabled = options.log === true;
 	if (options.log === true) l = console.log;
 	var scanner = new Scanner(template);
 	var _rootTokens = new __Tokens();
@@ -999,7 +1005,7 @@ function parse(template, options) {
 
 function render(template_or_tokens, context, options) {
 	options = extend({tag_start:"{{",tag_end:"}}"}, options||{});
-
+	logging_enabled = options.log === true;
 	if (options.log === true) 
 		l = console.log; 
 	else 
