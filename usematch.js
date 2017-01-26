@@ -717,12 +717,17 @@ function _findValue(_name, _root_context, _callIfFunction) {
     names = name.split('.')
 
 
-	while (context && names.length) {
-		if (isFunction(context))
-			context = value.call(_root_context); // allow (eg post:function() {}). It's horribly inefficient, but still... -- allow it
-		if (!context)
-			continue;
+	// Discussion: should {{posts.title}} return an array of titles because posts returned an array???
+	//If it returns an array/object then you can't iterate to a specific sub-item anyhow, without inferring that all child 'names' are then 'filters'.????
+	// ie posts.map(function(items) { return title; })
+	// I'm trying to think of a valid time you'd need something like this (where you wouldn't ALSO need other variables of post...)...?
+	// also what would: 'tags.*.value' return? a collated list of sub items of all tag types? (there would likely be duplicates in the result)
 
+	// Methinks pre-filtering is a better solution for these problems.
+	// (eg {{tags @alltags}})
+	// Hence {{posts.title}} would return empty, but {{posts.length}} should be ok
+	
+	while (context && names.length) {
 		if (!hasProperty(context, name)) {  // look for 'post.item.title' as a field
 			// nope. 
 			if (names[0]==='*' && !hasProperty(context, names[0])) {  // look for '*' as a field
