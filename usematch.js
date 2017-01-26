@@ -702,13 +702,57 @@ function _preFilterValue(value, context, token) {
 
 function _valueToKeyValues(context) {
 	var values = [];
-	for (var key in context)
-		values.push({key:key, value: context[key]})
+	if (!!context)
+		for (var key in context)
+			values.push({key:key, value: context[key]})
 	logObj(" ==> ", values)
 	return values;
 
 }
-function _findValue(name, _context, _callIfFunction) {
+function _findValue(_name, _root_context, _callIfFunction) {
+    var name, names, value, context = _root_context;
+	if (_callIfFunction===undefined) _callIfFunction = true;
+
+    name = _name; // eg. post.item.title or post.item.*
+    names = name.split('.')
+
+
+	while (context && names.length) {
+		if (isFunction(context))
+			context = value.call(_root_context); // allow (eg post:function() {}). It's horribly inefficient, but still... -- allow it
+		if (!context)
+			continue;
+
+		if (!hasProperty(context, name)) {  // look for 'post.item.title' as a field
+			// nope. 
+			if (names[0]==='*' && !hasProperty(context, names[0])) {  // look for '*' as a field
+				// have *, but not as a field
+				// convert the current context to key/value pairs & keep searching
+				context = _valueToKeyValues(context)
+				if (names.length===1)
+					value = context; // this is the last item. This is what we were looking for.
+			}
+			else
+			{
+				//look for 'item.title' in 'post'
+				context = context[names[0]]
+			}
+			names.splice(0,1)
+			name = names.join('.')
+		}
+		else {
+			value = context[name];
+			context = null; // stop iterating! (NB: value might be forcibly 'undefined' or 'null', so can't test for value)
+		}
+	}
+
+	if (!!value && _callIfFunction && isFunction(value))
+		value = value.call(_root_context);
+
+    return value;
+}
+
+function xx_findValue(name, _context, _callIfFunction) {
 	if (_callIfFunction===undefined) _callIfFunction = true;
     var value, context = _context, names, index, lookupHit = false;
 
@@ -745,7 +789,7 @@ function _findValue(name, _context, _callIfFunction) {
 			}
 			value = context;
 		} else {
-			if (names == '*')
+			if (name == '*')
 				//special case. convert the current object to a list of key/values
 				value = _valueToKeyValues(context);
 			else
