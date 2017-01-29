@@ -757,58 +757,6 @@ function _findValue(_name, _root_context, _callIfFunction) {
     return value;
 }
 
-function xx_findValue(name, _context, _callIfFunction) {
-	if (_callIfFunction===undefined) _callIfFunction = true;
-    var value, context = _context, names, index, lookupHit = false;
-
-	while (context && !lookupHit) {
-		if (name.indexOf('.') > 0 && context[name]===undefined) {
-			names = name.split('.');
-			index = 0;
-
-			/**
-			* Using the dot notion path in `name`, we descend through the
-			* nested objects.
-			*
-			* To be certain that the lookup has been successful, we have to
-			* check if the last object in the path actually has the property
-			* we are looking for. We store the result in `lookupHit`.
-			*
-			* This is specially necessary for when the value has been set to
-			* `undefined` and we want to avoid looking up parent contexts.
-			**/
-			while (context != null && index < names.length) {
-				if (names[index] == '*') {
-					//special case. convert the current object to a list of key/values
-					context = _valueToKeyValues(context);
-					lookupHit = index === names.length - 1;
-					index++;
-				}
-				else
-				{
-					if (!lookupHit && index === names.length - 1)
-						lookupHit = hasProperty(context, names[index]);
-
-					context = context[names[index++]];
-				}
-			}
-			value = context;
-		} else {
-			if (name == '*')
-				//special case. convert the current object to a list of key/values
-				value = _valueToKeyValues(context);
-			else
-				value = context[name];
-			lookupHit = true; // hasProperty(context, name);
-		}
-	}
-
-	if (_callIfFunction && isFunction(value))
-		value = value.call(_context);
-
-    return value;
-}
-
 function isSimpleObject(o) {
 	return o===null || o===undefined || isArray(o) || ['string', 'number', 'boolean', 'function'].indexOf(typeof o)>=0;
 }
