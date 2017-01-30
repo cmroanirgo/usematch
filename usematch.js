@@ -664,6 +664,13 @@ function _filterValue(value, context, token) {
 }
 
 function _preFilterValue(value, context, token) {
+	// look for prefilter.section first...
+	var filterName = "prefilter."+token.name;
+	var fn = _findValue(filterName, context, false);
+	if (fn  && isFunction(fn)) {
+		value = fn.call(context, value, {}, token.name);
+	}
+
 	if (token.params && token.params.prefilters && token.params.prefilters.length) {
 		token.params.prefilters.forEach(function(filterObj) {
 			var filterName = filterObj.name || "prefilter."+token.name;
@@ -684,18 +691,6 @@ function _preFilterValue(value, context, token) {
 			value = fn.call(context, value, filterObj.params||{}, token.name);
 
 		})
-	}
-	else
-	{
-		// look for prefilter.section...
-		var filterName = "prefilter."+token.name;
-		var fn = _findValue(filterName, context, false);
-		if (!fn || !isFunction(fn)){
-			//l("Auto pre-filter '" + filterName + "' is not found. val="+fn);
-			return value;// can't find, don't worry
-			//throw new Error("Auto pre-filter '" + filterName + "' is not a function: " + dump(context))
-		}
-		value = fn.call(context, value, {}, token.name);
 	}
 	return value;
 }
