@@ -681,7 +681,7 @@ function _preFilterValue(value, context, token) {
 			}
 			if (!isFunction(fn))
 				throw new Error("Pre-filter '" + filterName + "' is not a function: " + dump(context));
-			value = fn.call(context, value, filterObj.params||{});
+			value = fn.call(context, value, filterObj.params||{}, token.name);
 
 		})
 	}
@@ -695,7 +695,7 @@ function _preFilterValue(value, context, token) {
 			return value;// can't find, don't worry
 			//throw new Error("Auto pre-filter '" + filterName + "' is not a function: " + dump(context))
 		}
-		value = fn.call(context, value, {});
+		value = fn.call(context, value, {}, token.name);
 	}
 	return value;
 }
