@@ -664,16 +664,32 @@ function _filterValue(value, context, token) {
 }
 
 function _preFilterValue(value, context, token) {
-	// look for prefilter.section first...
-	var filterName = "prefilter."+token.name;
-	var fn = _findValue(filterName, context, false);
-	if (fn  && isFunction(fn)) {
-		value = fn.call(context, value, {}, token.name);
+	// look for automatic prefilter.section first...but ONLY if the prefilter section NOT found in prefilters
+	var autofilter = true;
+	if (token.params && token.params.prefilters) {
+		token.params.prefilters.some(function(filterObj) {
+			if (!filterObj.name || (filterObj.name==='prefilter.'+token.name))  {// empty name or deliberately mentioned prefilter
+				//console.log("\n\nNOT CALLING PREFILTER=================")
+				autofilter = false;
+			}
+			return !autofilter;
+		})
+	}
+
+	if (autofilter) {
+		// we are the only prefilter instance (ie. no params, no nuthin)
+		var filterName = "prefilter."+token.name;
+		var fn = _findValue(filterName, context, false);
+		if (fn  && isFunction(fn)) {
+			value = fn.call(context, value, {}, token.name);
+		}
 	}
 
 	if (token.params && token.params.prefilters && token.params.prefilters.length) {
 		token.params.prefilters.forEach(function(filterObj) {
 			var filterName = filterObj.name || "prefilter."+token.name;
+			if (!filterObj.name && autofilter)
+				throw new Error("Unexpected! Usematch prefilter called twice!")
 			var fn = _findValue(filterName, context, false);
 			if (!fn) {
 				if (!filterObj.name) {// autofiltered?
