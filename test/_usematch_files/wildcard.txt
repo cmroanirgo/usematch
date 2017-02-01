@@ -4,3 +4,10 @@ first post
 Tag: tag2
 first post
 3rd post
+
+Keywords: key1
+first post
+2nd post
+Keywords: key2
+first post
+3rd post

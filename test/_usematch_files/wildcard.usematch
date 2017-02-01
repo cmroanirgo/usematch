@@ -1,3 +1,6 @@
 {{#tags.*}}Tag: {{key}}
 {{#value}}{{title}}
 {{/value}}{{/tags.*}}
+{{#all.keywords.*}}Keywords: {{key}}
+{{#value}}{{title}}
+{{/value}}{{/all.keywords.*}}
