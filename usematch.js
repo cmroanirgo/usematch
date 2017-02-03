@@ -656,7 +656,7 @@ function _filterValue(value, context, token) {
 			throw new Error("Named filter reference '" + filterObj.name + "' not found");
 		if (!isFunction(fn))
 			throw new Error("Named filter reference '" + filterObj.name + "' is not a function: " + dump(context));
-		value = fn.call(context, value, filterObj.params||{});
+		value = fn.call(context, value, filterObj.params||{}, token.name);
 		logObj(' > filtered value is:', value)
 
 	})
