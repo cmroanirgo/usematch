@@ -494,7 +494,7 @@ function _parse(template, options) {
 			}))
 				;
 			else if (m = scanner.match(MATCHES.IF_START, function(name, op, value) {
-				// found: {{^IF name op value}}
+				// found: {{IF name op value}}
 				l("Found IF {{...}}: '" + name + "', '"+op+"', '"+value+"'")
 				beginIfSection(name, op, value, current_options)
 			}))
@@ -991,7 +991,10 @@ function _render(tokens, context, options) {
 					//throw new Error("Could not find partial '"+token.name+"'")
 					value = '';
 				}
-				strings.push(_render(_parse(value, options), currentContext, options));
+				if (isString(value))
+					value = _parse(value, options);
+
+				strings.push(_render(value, currentContext, options));
 				break;
 			default:
 				throw new Error("Unknown token: " + token.type)
@@ -1001,7 +1004,6 @@ function _render(tokens, context, options) {
 	logObj("Rendered: ", strings ); l('\n')
 	return strings.join('');
 }
-
 
 function parse(template, options) {
 	options = extend({tag_start:"{{",tag_end:"}}"}, options||{});
@@ -1033,6 +1035,17 @@ function render(template_or_tokens, context, options) {
 	return _render(template_or_tokens, context, options);
 
 }
+
+/*
+A compile function, the 'ejs' way. It doesn't bring much to the table, so is not exported.
+Usage:
+var fn= usematch.comile(template, opts);
+fn.call(data)
+function compile(template, options) {
+	var tokens = parse(template, options);
+	return new function(context, _options) { return render(tokens, context, _options || options); }
+}
+*/
 
 var _mustacheCache = {};
 var _usematch = {
